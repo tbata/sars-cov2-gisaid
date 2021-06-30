@@ -1,0 +1,232 @@
+---
+title: "Implementing Models of SAR-CoV-2 mutation counts: period 3"
+author: "T Bataillon"
+date: "last update: `r Sys.Date()`)"
+output:
+  html_document:
+    theme: united
+    code_folding: show
+    toc: true
+    toc_depth: 2
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r}
+data_path <- "data/2021-06-18/"
+```
+
+# Using data version: `r data_path`
+
+# Brief history of rmd file: 
+
+* Sept 29 , First try to sketch data models for grouped datasets
+* Nov 13, added negative binomial model fits 
+* Jan 13, 2020 : rewrote the analysis for the new data parse
+* Jan 21, analysis for 10 early lineages 
+* April moved as `workflowr` repo and move to snpEff pipeline data parse
+* June 30 updated gene name and used latest data freeze
+
+NB to be removed as version tracking makes this obsolete .. ;) 
+
+```{r, include=FALSE}
+suppressPackageStartupMessages(library(tidyverse)) # to avoid messy 
+library(ggsci)
+library(ggrepel)
+library(cowplot)
+library(knitr)
+library(MASS)
+library(ggthemes)
+library(modelr)
+library(ciTools)
+```
+
+# Loading data from rds annotated windows  
+```{r}
+df_muts_and_covs <- readRDS("output/data_100pb_pangolin_period1_withCovs.rds")
+dim(df_muts_and_covs)
+summary(df_muts_and_covs)
+table(df_muts_and_covs$pangolin_lineage) %>% t() %>% knitr::kable() # 614 windows expected per lineage
+```
+
+# data summaries before modeling counts
+Summaries of counts, including the variance to mean ratio that is a good indicator of Poisson like distribution ( expect 1 under Poisson):
+
+```{r}
+df_muts_and_covs %>%
+  group_by(pangolin_lineage, type) %>%
+  summarise(n=n(),
+            mean = mean(unique_mutations), 
+            var = var(unique_mutations),
+            ratio = var/mean) %>%
+  knitr::kable(digits = 2)
+
+```
+
+## The distributions of counts 
+
+```{r}
+ggplot(data = df_muts_and_covs,
+       aes(x =unique_mutations, fill = type))+
+  geom_histogram(binwidth = 1)+
+  facet_wrap(~  pangolin_lineage + type, ncol = 2, strip.position = "right")+
+  theme_minimal(base_size = 15)+
+  xlab("nb unique mutations per window (gisaid)")+
+  scale_fill_viridis_d()+
+  theme_cowplot(font_size = 12)+
+  theme(legend.position = "top")+
+  NULL
+```
+
+# Nesting datat by type (JUST one variable for now!)
+
+```{r}
+
+by_type <- df_muts_and_covs %>% 
+  group_by(type, pangolin_lineage) %>% 
+  nest()
+by_type
+names(by_type)
+```
+
+
+
+## Step 2 : Make model fitting function(s).
+
+
+Note that the function is an adhoc "wrapper" for a given model. Technically we want to have a series of models and these are "coded manually" just once.
+
+Here I try with a simple minded $m_0$, $m_1$ up to $m_3$  in practice we might have to code a series of models we agree upon :=)
+
+
+```{r}
+fitting_m00 <- function(my_df) {
+  glm(unique_mutations ~ 1 , data = as.data.frame(my_df), family = poisson)
+}
+
+fitting_m0 <- function(my_df) {
+  glm.nb(unique_mutations ~ 1 , data = as.data.frame(my_df))
+}
+
+fitting_m1 <- function(my_df) {
+  glm.nb(unique_mutations ~ W.R.dS  , data = as.data.frame(my_df))
+}
+
+fitting_m2 <- function(my_df) {
+  glm.nb(unique_mutations ~ W.R.dS  + gene_name , data = as.data.frame(my_df))
+}
+
+```
+
+
+# Fitting only one model at a time 
+```{r}
+
+
+model_m00 <- purrr::map(.x = by_type$data, .f = fitting_m00)
+
+```
+
+## Step 3: mapping a model function to the nested data
+
+
+```{r,warning=F}
+by_type <- by_type %>% 
+  mutate(model_m00 = purrr::map(data, fitting_m00),
+         model_m0 = purrr::map(data, fitting_m0),
+         model_m1 = purrr::map(data, fitting_m1),
+         model_m2 = purrr::map(data, fitting_m2))
+```
+
+## Step 5 summarize goodness of fit 
+
+Borrowed from the r4ds book ... but not super useful 
+Need to also be made more "functional"...
+
+```{r}
+
+summary_m00 <- by_type %>% 
+  mutate(glance00 = map(model_m00, broom::glance)) %>% 
+  unnest(glance00)
+summary_m0 <- by_type %>% 
+  mutate(glance0 = map(model_m0, broom::glance)) %>% 
+  unnest(glance0)
+
+summary_m1 <- by_type %>% 
+  mutate(glance1 = map(model_m1, broom::glance)) %>% 
+  unnest(glance1)
+
+summary_m2 <- by_type %>% 
+  mutate(glance2 = map(model_m2, broom::glance)) %>% 
+  unnest(glance2)
+
+final_tbl <- tibble (Type= by_type$type, Lineage = by_type$pangolin_lineage,
+        m00_aic = summary_m00$AIC, 
+        m0_aic = summary_m0$AIC,
+        m1_aic = summary_m1$AIC,
+        m2_aic = summary_m2$AIC)
+        
+final_tbl %>%
+  arrange(Type) %>%
+  kable(digits = 2)
+```
+
+# Step6 Extracting confidence intervals 
+
+I use an adhoc wrapper of add_ci() to specify the alpha level of the Ci to build
+Note that `ci_alpha` is hard coded and needs to be updated: 
+
+Here I fit using model $m_1$
+```{r}
+ci_alpha <- 0.05/(307*10) #hardcoded here to be updated
+
+add_ci_at_alpha <- function (dataX, modelY){
+  return(add_ci(df = dataX,  fit= modelY, alpha= ci_alpha))
+}
+
+by_type <- by_type %>%
+  mutate(cis_m1 = map2(data, model_m1, add_ci_at_alpha)
+  )
+
+by_type_m1 <- unnest(by_type, cis_m1)
+names(by_type_m1)
+dim(by_type_m1)
+```
+
+# Plot:  fitted model and counts  
+
+## Obs versus predicted along the genome
+I am just doing a quick and dirty visual of the observed counts versus the upper CI at the $\alpha$ level
+
+```{r}
+by_type_m1 <- 
+  by_type_m1 %>%
+  mutate(categ = ifelse( (unique_mutations > UCB0.999991856677524 ), "pos. sel", "neutral"))
+```
+
+##  final graphs by linages 
+
+```{r}
+sars_annot <- readRDS("data/proteins_sarscov2_genome_positions.rds")
+```
+
+```{r}
+by_type_m1 %>%
+  filter(type=="NS") %>%
+  ggplot(aes(x=window_start_gis)) + 
+  # geom_point(aes(y=Count), color="grey", size =0.4)+
+  geom_point(aes(y=unique_mutations, color=categ))+
+  xlab("genomic positions (windows of 100nt)")+ 
+  facet_wrap(~ pangolin_lineage, ncol = 1, scales = "free_y", strip.position = "right")+
+  theme(legend.position = "top") + 
+  scale_color_colorblind()+
+  theme_cowplot(font_size = 12)+
+  annotate("text", x = 21563, y = -1, label = "S", size=4)+
+  annotate("text", x = 26523, y = -1, label = "M", size=4)+
+  annotate("text", x = 28274, y = -1, label = "N", size=4)+
+  NULL
+```
+
+
+

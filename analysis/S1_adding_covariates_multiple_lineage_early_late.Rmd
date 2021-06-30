@@ -1,0 +1,200 @@
+---
+title: "Aggregating covariates to windows counts in early period "
+author: "T. Bataillon "
+date: 'Last update: `r Sys.time()`'
+output: 
+  html_document:
+    theme: united
+    code_folding: hide
+    toc: true
+    toc_depth: 2 
+editor_options: 
+  chunk_output_type: console
+--- 
+
+```{r}
+# data_path <- "data/2021-04-09/"
+data_path <- "data/2021-06-18/"
+```
+
+# Using data version: `r data_path`
+
+# Note 
+<!-- This script is similar to the single lineage merging script (S1xxx) but upgrading to set of lineages collected in early/late period. -->
+
+`data100` is an rds containing windows parsed from gisaid data parse using the S0 script
+`susan_df` is the original mut counts ( Angela's) + covariates integration performed by Susan (see readme.rmd in `/data`)
+
+Note currently the script is run **twice** on both early and late counts (rds objects)
+
+# Loading data from windows counts + covariates
+
+```{r, message=F, warning=F}
+suppressPackageStartupMessages(library(tidyverse)) # to avoid messy 
+library(cowplot)
+
+data100 <- readRDS(file = "output/data_100pb_pangolin_period1.rds")
+dim(data100)
+names(data100)[2] <- "gene"
+head(data100)
+# covs  parsed by susan .. 
+susan_df <-read_csv("data/MutCounts_with_covariates.csv")
+names(susan_df)
+dim(susan_df)
+length(unique(susan_df$Lineage)) #32 Lineages 
+39296/(32*2) # check that 614 windows *2 (2 time periods) matches the total number of lines on the covs data organized by Susan 
+
+gene_positions_md <-readRDS("data/proteins_sarscov2_genome_positions.rds")
+names(gene_positions_md)[1]<-"gene" #(to be consistent with data100)
+```
+
+# Adding covariates to the new compiled counts of mutations per window 
+
+First reformatting data100 to match the ids of susan's covariates info before joining :
+I use the `protein.range` as pivotal column to make joins
+
+```{r}
+names(data100)
+head(data100)
+data100 <- data100 %>%
+  na.omit() %>%
+  mutate(protein.range = paste(gene,gene_bin,sep=".")) 
+head(data100)
+```
+
+
+We loop over lineage and aggregate covs from susan and then stitch data together ... might need to explore if there is a faster way ... right now it works fine
+
+## Lineages to merge 
+We first decide on the subset of `lineages_to_merge`: here we take the intersection between `susan_df` and `data100` 
+Later we can also choose all lineages in the `data100` parse
+```{r}
+lineages_to_merge <-unique(data100$pangolin_lineage)
+lineages_to_merge[1]
+(nLin <- length(lineages_to_merge))
+```
+
+## Loop to merge susans metadata
+
+### extracting the md in 614 windows 
+
+Arbitrarily we use A.1 (note this is a weakness of our coding here as it assumes the presence of A.1 in the data)
+
+```{r}
+susan_md <- susan_df %>%
+  filter(Lineage == "A.1") %>% 
+  filter(t.period == 1)
+susan_md <- susan_md[,c(4,6, 9:23)]
+susan_md$Type <- as.factor(susan_md$Type)
+names(susan_md)
+names(susan_md)[2]<-"type"
+names(susan_md)
+dim(susan_md)
+summary(susan_md)
+```
+
+### Looping and merging
+```{r}
+data100_susansmd <- NULL
+dim(data100_susansmd)
+for(mypangolin in lineages_to_merge) {
+  cat("Merging Lineage ", mypangolin)
+  
+  gisaid_counts <- data100 %>%
+    filter(pangolin_lineage == mypangolin) %>%
+    mutate(type = fct_recode(type,"S"= "Synonymous substitutions", "NS"="Nonsynonymous substitutions"))
+  
+  cat(mypangolin, " : ", dim(gisaid_counts)[1], " windows with non zero counts \n")
+  data100_annotated_wzeros<- susan_md %>%
+  left_join(gisaid_counts,by = c("type", "protein.range"))
+  data100_annotated_wzeros <- mutate(data100_annotated_wzeros, 
+         pangolin_lineage = mypangolin) #forcing lineage name on NA
+  cat("After merging: ", dim(data100_annotated_wzeros)[1], " windows found (should have 614) \n")
+  data100_susansmd <- bind_rows(data100_susansmd,data100_annotated_wzeros)
+}
+
+dim(data100_susansmd)
+summary(data100_susansmd$unique_mutations)
+```
+
+### Filling in zeros instead of NAs after merging
+The merge generates various NAs for windows with zero counts in the gisaid data and these should be fixed:
+NA in counts -> 0 
+NA in max_genomes_mutated ->0 
+NA in window_start rebuild using gene structure 
+
+```{r}
+
+data100_susansmd <- data100_susansmd %>%
+  mutate(unique_mutations = ifelse(is.na(unique_mutations), 0, unique_mutations),
+         max_genomes_mutated  = ifelse(is.na(max_genomes_mutated), 0, max_genomes_mutated)) 
+
+# rebuilding gene and bins in gene
+data100_susansmd <- data100_susansmd %>%
+  separate(col = protein.range , into = c("gene_name","gene_bin"))
+
+
+get_windowstart <- function(my_gene, my_bin) {
+  thestart <- gene_positions_md$start_pos[which(gene_positions_md$gene == my_gene)]
+  return(thestart + 100*(as.numeric(my_bin)-1))
+  }
+
+
+data100_susansmd <- data100_susansmd %>%
+  mutate(window_start_gis = unlist(map2(.f = get_windowstart,.x = gene_name, .y=gene_bin))) 
+# %>%
+#   select(-c(window_start))
+
+```
+
+### Sanity check on the merged data
+
+```{r}
+(dim(data100_susansmd)[1] /614) == nLin   # check on 614 lines of obs per lineage
+names(data100_susansmd)
+summary(data100_susansmd)
+```
+
+### Output as RDS
+WE save the data100_susansmd as RDS object 
+```{r}
+# saveRDS(data100_susansmd, "data_100pb_early_withCovs.rds")
+saveRDS(data100_susansmd, "output/data_100pb_pangolin_period1_withCovs.rds")
+
+```
+
+# Graphical Overview of counts 
+reading from rds as a check 
+
+```{r}
+counts_annotated <- readRDS("output/data_100pb_pangolin_period1_withCovs.rds")
+dim(counts_annotated)
+names(counts_annotated)
+```
+## counts along windows
+```{r}
+ggplot(data = counts_annotated,
+       aes(x = window_start_gis, y = unique_mutations, 
+           color = type))+
+  geom_point()+
+  facet_wrap(~pangolin_lineage, ncol = 1, scales = "free_y", strip.position = "right")+
+  theme(legend.position = "top")+
+  theme_cowplot(font_size = 12)+
+  scale_colour_viridis_d(name="", direction = -1)+
+  NULL
+
+```
+
+```{r}
+ggplot(data = counts_annotated,
+       aes(x =unique_mutations, fill = type))+
+  geom_histogram(binwidth = 1)+
+  facet_wrap(~  pangolin_lineage + type, ncol = 2, strip.position = "right")+
+  theme_minimal(base_size = 15)+
+  xlab("nb unique mutations per window (gisaid)")+
+  scale_fill_viridis_d(direction = -1)+
+  theme_cowplot(font_size = 12)+
+  theme(legend.position = "top")+
+  NULL
+```
+

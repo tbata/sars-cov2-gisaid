@@ -1,5 +1,5 @@
 ---
-title: "About"
+title: "Contributors"
 output:
   workflowr::wflow_html:
     toc: false
@@ -7,4 +7,18 @@ editor_options:
   chunk_output_type: console
 ---
 
-Describe your project.
+This repo contains the data parse and statistical analysis made on publicly available SARS-Cov2 genomes deposited in GISAID.
+Additional covariates integrated to that genome data are also provided in /data (see `readme.md`).
+
+Contributions: 
+
+Repo: TB PV
+
+Data and covariate collection and integration: TB AA SB 
+Patient data outcome : PV DM RK (currently not added)
+
+Genome data pipeline and data parse: AA PV
+
+Data Analysis: AA SB TB PV RK  
+
+Conceptualization AA SB TB RK PV

@@ -1,0 +1,290 @@
+---
+title: "Extracting windows based counts of mutations from gisaid data freeze parsed by the snpEff pipeline "
+author: "Thomas Bataillon reusing PV examples"
+date: 'Last update: `r Sys.time()`'
+output: 
+  html_document:
+    theme: united
+    code_folding: hide
+    toc: true
+    toc_depth: 2 
+editor_options: 
+  chunk_output_type: console
+--- 
+
+
+# Overview
+
+* We filter away a few genomes (wrong date etc).
+* We create summaries binning by genomic windows starting at each gene, stratifying by pangolin lineages 
+* We output counts as rds files for each lineage separately
+
+
+
+```{r hardcode_data_path}
+# data_path <- "data/2021-04-09/" # depreacted in the worlfklowr project 
+data_path <- "data/2021-06-18/"
+
+```
+
+# Using data version: `r data_path`
+
+# Init: loading libraries and data
+```{r, message=F, warning=F}
+library(tidyverse)
+library(cowplot)  # For theme
+library(lubridate)
+library(ggsci)
+library(ggrepel)
+
+text_base_size   <- 10   # in pt
+ggplot_text_size <- text_base_size / ggplot2::.pt
+# Now use: geom_text(..., size = ggplot_text_size)
+theme_set(theme_cowplot(font_size = text_base_size, 
+                        rel_small = 1, rel_tiny = 1, 
+                        rel_large = 1))
+
+
+mutations    <- read_rds(paste(data_path, "/mutations_snpeff_annotated_tidy_300K_downsampled.rds", sep=""))
+metadata  <- read_rds(paste(data_path, "/metadata_snpeff_tidy_300K_downsampled.rds",sep="")) 
+genomes_md <- metadata %>% 
+  # left_join(phylogeny_md) %>% #now obsolete as we have a single metadata rds
+  mutate(date = ymd(date)) %>%
+  filter(species %in% c("Human", "Mink")) %>%
+  mutate(date_sub = str_sub(date,1,4)) %>%
+  filter(date_sub  %in% c("2019","2020","2021")) %>%
+  
+  {.}
+
+```
+
+# A quick view of the merged
+```{r}
+names(metadata)
+dim(genomes_md) #current size of the genomes_md.
+names(genomes_md)
+head(genomes_md) %>% knitr::kable(digits = 3)
+```
+
+# Adding genomic coordinates that are gene-centric 
+
+(Note, here or in the `/data/Readme.md`, provide details for the  data source of `output/proteins_sarscov2_genome_positions.rds` )
+
+```{r}
+gene_positions_md <-readRDS("data/proteins_sarscov2_genome_positions.rds")
+gene_positions_md %>% arrange(start_pos) %>%knitr::kable()
+```
+
+Split into 100 bp windows in genome
+I position bins according to the gene starts to get a `position_bin` that in principle should match the ones computed by Susan in the co-variate files : 
+`genome_bin` gives genomic windows numbered consecutively 1, 2, 3...
+`window_start` provides the genomic coordinate of each `genome_bin`
+Finally `gene_bin` renames consecutively the windows 1,2, 3, ... within each gene.
+
+Having both coordinate system allows - in principle - to retain some level of sanity while juggling with the co-variates (see following script S1 for aggregating all co-variates compiled during the summer):
+
+```{r}
+names(mutations)
+names(genomes_md)
+names(gene_positions_md)
+names(gene_positions_md)[1]<-"gene" # Renaming the gene column to make it compatible with the mutation tibble
+```
+
+```{r}
+
+mutations_annotated <- mutations %>% 
+  left_join(genomes_md) %>%
+  left_join(gene_positions_md) %>%
+  mutate(genome_bin = position %/% 100) %>% # abs genomic numbering 1, 2, etc.
+  mutate(window_start = genome_bin*100) %>% # genomic coordinate
+  mutate(gene_bin = 1+ (position - start_pos) %/%100 ) %>% #new calculation to get the bin number within each gene
+  filter(!is.na(species)) %>%
+  {.}
+
+rm(mutations)
+dim(mutations_annotated)
+names(mutations_annotated)
+```
+
+# Overview of data (optional)
+
+```{r}
+
+pd <- tibble() %>%
+  bind_rows(tibble("Description" = "Genomes total", 
+                   "n" = genomes_md %>% select(id) %>% distinct() %>% count() %>% pull(n) )) %>%
+  bind_rows(tibble("Description" = "Genome with mutations in protein coding regions",
+                   "n" = mutations_annotated %>% select(id) %>% distinct() %>% count() %>% pull(n) )) %>%
+  bind_rows(tibble("Description" = "Unique mutations total",
+                   "n" = mutations_annotated %>% select(position, variant_base) %>% distinct() %>% count() %>% pull(n) )) %>%
+  bind_rows(tibble("Description" = "Synonymous mutations",
+                   "n" = mutations_annotated %>% filter(type=="S") %>% select(position, variant_base) %>% distinct() %>% count() %>% pull(n) )) %>%
+  bind_rows(tibble("Description" = "Nonsynonymous mutations",
+                   "n" = mutations_annotated %>% filter(type=="N") %>% select(position, variant_base) %>% distinct() %>% count() %>% pull(n) )) %>%
+  bind_rows(tibble("Description" = "Human genomes",
+                   "n" = genomes_md %>% filter(species=="Human") %>% count() %>% pull(n) )) %>%
+  bind_rows(tibble("Description" = "Mink genomes",
+                   "n" = genomes_md %>% filter(species=="Mink") %>% count() %>% pull(n) )) %>%
+  bind_rows(tibble("Description" = "Other genomes",
+                   "n" = genomes_md %>% filter(!species %in% c("Human","Mink")) %>% count() %>% pull(n) )) %>%
+  
+  bind_rows(tibble("Description" = "Samples with Patient status",
+                   "n" = genomes_md %>% filter(!is.na(`Patient status`)) %>% count() %>% pull(n) )) %>%
+  {.}
+
+knitr::kable(pd)
+
+```
+
+
+
+
+
+## Unique mutations per. pangolin lineage
+
+```{r}
+mutations_annotated %>%
+  #group_by(name,type, position) %>% # Unique positions
+  group_by(pangolin_lineage,type, position, ref_base, variant_base) %>% # Unique mutations
+  summarise(genomes_mutated=n()) %>%
+  ungroup() %>%
+  group_by(pangolin_lineage) %>%
+  summarise(total = sum(genomes_mutated),
+                N = sum(type=="N"),
+                S = sum(type=="S"),
+               NS = N/S) %>%
+  arrange(desc(total)) %>%
+  slice(1:25) %>%  # keep only the top of the distribution
+  knitr::kable()
+
+```
+
+## Pangolin lineages sample size distribution
+An overview of the top 25 lineages size
+```{r}
+genomes_md %>%
+  group_by(pangolin_lineage) %>%
+  summarize( n_genomes = n()) %>%
+  arrange(-n_genomes) %>%
+  slice(1:25) %>%
+  knitr::kable()
+
+
+genomes_md %>%
+  group_by(pangolin_lineage) %>%
+  summarize( n_genomes = n()) %>%
+  arrange(-n_genomes) %>%
+  slice(1:25) -> top25pangolin 
+```
+
+
+# Counts of Mutations in 100 bp windows
+
+
+Note this new version: referencing according to Susan data integrataion
+We select a subset of lineages `to_extract`:
+
+```{r}
+to_extract<-c("B.1.177", "B.1.5", "D.2", "A.1",  "B.1.1.7", "B.1.351", "P.1")
+```
+
+AS check 
+we extract sets of genomes mayching the two time periods of Angela's original parse 
+we keep wins having up to 1 mutation.
+
+## for period 1
+
+```{r}
+
+data100 <- mutations_annotated %>%
+  filter(species=="Human") %>%
+  filter(date < "2020-04-01") %>%
+  filter(pangolin_lineage %in% to_extract)  %>% # update
+  group_by(pangolin_lineage, gene, gene_bin, window_start, position, variant_base, type, aa_change) %>%
+  summarise(genomes_mutated=n()) %>% # Number of genomes mutated pr single mutation
+  filter(genomes_mutated >= 1) %>% # KEEP singletons 
+  group_by(pangolin_lineage, gene, gene_bin, type) %>% 
+  summarise(unique_mutations = n(), 
+            max_genomes_mutated=max(genomes_mutated),
+            window_start = mean(window_start)) # Count number of sites mutated pr window
+
+data100 <- data100 %>%  
+  mutate(type=factor(type)) %>%
+  mutate(type = fct_recode(type,"Synonymous substitutions"="S", "Nonsynonymous substitutions"="N")) %>%
+  mutate(type = fct_relevel(type, "Synonymous substitutions"))
+
+```
+
+Check that we have the lineages we wanted to extract 
+```{r}
+dim(data100)
+unique(data100$pangolin_lineage) %in% to_extract
+```
+
+### Overview of the counts for extracted lineages 
+```{r}
+ggplot(data100, aes(x=window_start, y=unique_mutations, size=max_genomes_mutated, color=type)) + 
+  geom_point() +
+  ylim(c(0,NA)) +
+  xlim(c(0,NA)) +
+  xlab("Genome position") +
+  ylab("Number of unique mutations in 100bp") +
+  scale_color_aaas(name="") +
+  scale_size("Max genomes mutated", range=c(1,5)) +
+  facet_wrap(~ pangolin_lineage, ncol = 1, scales = "free_y")+
+  theme(legend.position = "none")+
+  # theme(legend.position = c(0.5,1),legend.justification = c(0.5,1))+
+  # theme(legend.box.background = element_rect(fill="#F0F0F0")) +
+  NULL
+```
+
+### save mutations as RDS object 
+
+```{r}
+saveRDS(data100, "output/data_100pb_pangolin_period1.rds")
+```
+
+
+
+## for period 2
+```{r}
+data100 <- mutations_annotated %>%
+  filter(species=="Human") %>%
+  filter(date >= "2020-04-01") %>%
+  filter(date < "2020-12-31") %>%
+  filter(pangolin_lineage %in% to_extract)  %>% # update
+  group_by(pangolin_lineage, gene, gene_bin, window_start, position, variant_base,type, aa_change) %>%
+  summarise(genomes_mutated=n()) %>% # Number of genomes mutated pr single mutation
+  filter(genomes_mutated > 1) %>% # IGNORE singletons 
+  group_by(pangolin_lineage, gene, gene_bin, type) %>% 
+  summarise(unique_mutations = n(), 
+            max_genomes_mutated=max(genomes_mutated),
+            window_start = mean(window_start)) # Count number of sites mutated pr window
+
+data100 <- data100 %>%  
+  mutate(type=factor(type)) %>%
+  mutate(type = fct_recode(type,"Synonymous substitutions"="S", "Nonsynonymous substitutions"="N")) %>%
+  mutate(type = fct_relevel(type, "Synonymous substitutions"))
+
+ggplot(data100, aes(x=window_start, y=unique_mutations, size=max_genomes_mutated, color=type)) + 
+  geom_point() +
+  ylim(c(0,NA)) +
+  xlim(c(0,NA)) +
+  xlab("Genome position") +
+  ylab("Number of unique mutations in 100bp") +
+  scale_color_aaas(name="") +
+  scale_size("Max genomes mutated", range=c(1,5)) +
+  facet_wrap(~ pangolin_lineage, ncol = 1, scales = "free_y")+
+  # theme(legend.position = c(0.5,1),legend.justification = c(0.5,1))+
+  # theme(legend.box.background = element_rect(fill="#F0F0F0")) +
+  NULL
+unique(data100$pangolin_lineage)
+table(data100$pangolin_lineage)
+```
+
+### save mutations as RDS object 
+
+```{r}
+saveRDS(data100, "output/data_100pb_pangolin_period2.rds")
+```
+

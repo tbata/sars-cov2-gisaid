@@ -1,0 +1,128 @@
+---
+title: "Visual and overview of GISAID mutation counts data + covariates: early period "
+author: "T. Bataillon "
+date: 'Last update: `r Sys.time()`'
+output: 
+  html_document:
+    theme: united
+    code_folding: hide
+    toc: true
+    toc_depth: 2 
+editor_options: 
+  chunk_output_type: console
+--- 
+
+```{r}
+data_path <- "data/2021-06-18/"
+```
+
+# Using data version: `r data_path`
+
+# Loading data from bins and covariates
+
+```{r, message=F, warning=F}
+
+suppressPackageStartupMessages(library(tidyverse)) # to avoid messy 
+library(ggsci)
+library(ggrepel)
+library(cowplot)
+
+data100_annotated<- readRDS( "output/data_100pb_pangolin_period3_withCovs.rds")
+dim(data100_annotated)
+names(data100_annotated)
+table(data100_annotated$gene_name)
+table(data100_annotated$gene)
+
+```
+
+# Overview dataset 
+```{r}
+data100_annotated %>%
+  select(gene_name, gene_bin, type, unique_mutations, W.G.dS) %>%
+  slice(400:410) %>%
+  knitr::kable(digits = 2)
+```
+
+# Overview counts
+
+## checking distributions 
+```{r}
+summary(data100_annotated$unique_mutations)
+```
+
+## mutations along the genome
+
+```{r}
+ggplot(data100_annotated, aes(x=window_start_gis, y=unique_mutations, size=max_genomes_mutated, color=type)) + 
+  geom_point() +
+  ylim(c(0,NA)) +
+  xlim(c(0,NA)) +
+  xlab("Genome position") +
+  ylab("Number of unique mutations in 100bp") +
+  scale_color_aaas(name="") +
+  scale_size("Max genomes mutated", range=c(1,5)) +
+  theme(legend.position = c(0.5,1),legend.justification = c(0.5,1))+
+  # theme(legend.box.background = element_rect(fill="#F0F0F0")) +
+  NULL
+```
+
+## histogram of counts 
+```{r}
+ggplot(data100_annotated, aes(x=unique_mutations,  fill=type)) + 
+  geom_histogram() +
+  ylim(c(0,NA)) +
+  xlim(c(0,NA)) +
+  ylab("Number of windows") +
+  xlab("Number of unique mutations in 100bp") +
+  scale_fill_aaas(name="") +
+  facet_wrap(~ pangolin_lineage + type, ncol = 2, scales = "free_y")+
+  # theme(legend.position = c(0.5,1),legend.justification = c(0.5,1))+
+  # theme(legend.box.background = element_rect(fill="#F0F0F0")) +
+  NULL
+```
+
+## Counts of mutations versus immunogenicity index
+
+```{r}
+data100_annotated %>%
+  filter(gene %in% c("N","M","S")) %>%
+  filter(type == "NS") %>%
+ggplot(aes(x=ii.CD8.max, y=unique_mutations, size=max_genomes_mutated, color=gene_name)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se=T, color= "black")+
+  ylim(c(0,NA)) +
+  xlim(c(0,NA)) +
+  xlab("ii.CD8max") +
+  ylab("Number of non syn mutations in 100bp") +
+  scale_color_aaas(name="") +
+  scale_size("Max genomes mutated", range=c(0.8,3)) +
+  facet_wrap(~ pangolin_lineage , ncol = 2)+
+  # theme(legend.position = "none")+
+  # theme(legend.position = c(0.5,1),legend.justification = c(0.5,1))+
+  # theme(legend.box.background = element_rect(fill="#F0F0F0")) +
+  NULL
+
+```
+
+# dS versus unique mutations 
+```{r}
+names(data100_annotated)
+data100_annotated %>%
+  filter(type == "NS") %>%
+ggplot(aes(x= log10(1+W.G.dS) , y=unique_mutations, size=max_genomes_mutated, color=gene_name)) + 
+  geom_jitter(height = 0.2) +
+  ylim(c(0,NA)) +
+  xlim(c(0,NA)) +
+  xlab("log10(dS) ") +
+  ylab("Number of non syn mutations in 100bp") +
+  scale_size("Max genomes mutated", range=c(0.8,3)) +
+  scale_color_viridis_d(direction = -1)+
+  facet_wrap(~ pangolin_lineage , ncol = 1, scales = "free_y")+
+  geom_smooth(method = "loess", aes(color=NULL), color= "black", size=0.5)+
+  # theme(legend.position = "none")+
+  # theme(legend.position = c(0.5,1),legend.justification = c(0.5,1))+
+  # theme(legend.box.background = element_rect(fill="#F0F0F0")) +
+  NULL
+
+```
+
