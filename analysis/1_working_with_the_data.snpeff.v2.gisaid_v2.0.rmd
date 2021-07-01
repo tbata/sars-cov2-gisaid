@@ -1,0 +1,655 @@
+---
+title: "Working with gisaid data (snpeff aka 'Palles pipeline') "
+author: "Palle Villesen"
+date: 'Last update: `r Sys.time()`'
+output: 
+  html_document:
+    theme: united
+    code_folding: hide
+    toc: true
+    toc_depth: 2 
+editor_options: 
+  chunk_output_type: console
+--- 
+
+```{r}
+
+# data_path <- "data/2021-06-18/"
+source("analysis/hard_coded_params.R")
+```
+
+# Using data version: `r data_path`
+
+# History 
+Added by TB in `sars-cov2-gisaid` workflowr project based on script written by PV 
+
+# Init
+
+```{r, message=F, warning=F}
+
+library(tidyverse)
+library(cowplot)  # For theme
+library(lubridate)
+library(ggsci)
+library(ggrepel)
+
+text_base_size   <- 12
+fig.witdh        <- 210
+fig.height       <- 160
+
+ggplot_text_size <- text_base_size / ggplot2::.pt
+# Now use: geom_text(..., size = ggplot_text_size)
+theme_set(theme_cowplot(font_size = text_base_size, 
+                        rel_small = 1, rel_tiny = 1, 
+                        rel_large = 1))
+
+knitr::opts_chunk$set(fig.width = fig.witdh/25.4)
+knitr::opts_chunk$set(fig.height = fig.height/25.4)
+knitr::opts_chunk$set(dpi = 108)
+
+
+mutations <- read_rds(paste(data_path, "/mutations_snpeff_annotated_tidy_300K_downsampled.rds", sep=""))
+metadata  <- read_rds(paste(data_path, "/metadata_snpeff_tidy_300K_downsampled.rds",sep="")) 
+
+x <- Sys.setlocale(locale = "en_US.UTF-8") # CHeck with PV NB on Windows you might want to substitute with "English"
+
+rm(x)
+dim(mutations)
+dim(metadata)
+```
+
+# Data structure
+
+```{r}
+
+x <- head(mutations, n = 1) %>% t()
+tibble(variable = rownames(x), value=x[,1]) %>% 
+  knitr::kable()
+
+x <- head(metadata, n = 1) %>% t()
+tibble(variable = rownames(x), value=x[,1]) %>% 
+  knitr::kable()
+
+rm(x)
+
+```
+
+
+# Overview of data
+
+```{r}
+
+pd <- tibble() %>%
+  bind_rows(tibble("Description" = "Genomes total", 
+                   "n" = metadata %>% select(id) %>% distinct() %>% count() %>% pull(n) )) %>%
+  bind_rows(tibble("Description" = "Mutations in these genomes", 
+                   "n" = mutations %>% distinct(id, position) %>% count() %>% pull(n))) %>%
+  bind_rows(tibble("Description" = "Genomes with mutations in protein coding regions",
+                   "n" = mutations %>% select(id) %>% distinct() %>% count() %>% pull(n) )) %>%
+  bind_rows(tibble("Description" = "Unique mutations total",
+                   "n" = mutations %>% select(position, variant_base) %>% distinct() %>% count() %>% pull(n) )) %>%
+  bind_rows(tibble("Description" = "Unique positions mutated",
+                   "n" = mutations %>% select(position) %>% distinct() %>% count() %>% pull(n) )) %>%
+  bind_rows(tibble("Description" = "Unique Synonymous mutations",
+                   "n" = mutations %>% filter(type=="S") %>% select(position, variant_base) %>% distinct() %>% count() %>% pull(n) )) %>%
+  bind_rows(tibble("Description" = "Unique Nonsynonymous mutations",
+                   "n" = mutations %>% filter(type=="N") %>% select(position, variant_base) %>% distinct() %>% count() %>% pull(n) )) %>%
+  bind_rows(tibble("Description" = "Sites with Synonymous mutations",
+                   "n" = mutations %>% filter(type=="S") %>% select(position) %>% distinct() %>% count() %>% pull(n) )) %>%
+  bind_rows(tibble("Description" = "Sites with Nonsynonymous mutations",
+                   "n" = mutations %>% filter(type=="N") %>% select(position) %>% distinct() %>% count() %>% pull(n) )) %>%
+  bind_rows(tibble("Description" = "Human genomes",
+                   "n" = metadata %>% filter(species=="Human") %>% count() %>% pull(n) )) %>%
+  bind_rows(tibble("Description" = "Mink genomes",
+                   "n" = metadata %>% filter(species=="Mink") %>% count() %>% pull(n) )) %>%
+  bind_rows(tibble("Description" = "Other genomes",
+                   "n" = metadata %>% filter(!species %in% c("Human","Mink")) %>% count() %>% pull(n) )) %>%
+  bind_rows(tibble("Description" = "Samples with Patient status",
+                   "n" = metadata %>% filter(!is.na(`Patient status`)) %>% count() %>% pull(n) )) %>%
+  {.}
+
+knitr::kable(pd)
+
+```
+
+# Examples
+
+## Patient metadata
+
+### Date of collection
+
+```{r}
+# Flag this 
+# metadata %>% 
+#   filter(species=="Human") %>%
+#   filter(!is.na(`Patient status`)) %>%
+#   mutate(date2=floor_date(ymd(`Collection date`),"month")) %>%
+#   count(date2) %>% 
+#   knitr::kable()
+
+metadata %>% 
+  filter(species=="Human") %>%
+  filter(!is.na(`Patient status`)) %>%
+  mutate(date2=str_sub(`Collection date`, start = 1, end = 7)) %>%
+  count(date2) %>% 
+  knitr::kable()
+
+```
+
+### Region and month
+
+```{r}
+
+metadata %>% 
+  filter(species=="Human") %>%
+  filter(!is.na(`Patient status`)) %>%
+  mutate(date2=floor_date(date,"month")) %>%
+  count(date2,region) %>% 
+  pivot_wider(names_from = region, values_from=n, values_fill=0 ) %>%
+  knitr::kable()
+
+```
+
+### Using bins of mutations as date proxy
+
+```{r}
+
+metadata %>% 
+  filter(species=="Human") %>%
+  filter(!is.na(`Patient status`)) %>%
+  mutate(mutation_bin=cut(count_S+count_N, breaks = seq(0,100,by = 5))) %>%
+  mutate(date2=floor_date(date,"month")) %>%
+  count(mutation_bin,date2) %>% 
+  pivot_wider(names_from = mutation_bin, values_from=n, values_fill=0 ) %>%
+  knitr::kable()
+
+```
+
+### Tagging patient genomes with D614G mutation
+
+Simple example of coding metadata with a specific mutation
+
+```{r}
+
+tmp1 <- mutations %>%
+  filter(gene=="S" & aa_change=="D614G")
+
+pd <- metadata %>%
+  filter(species=="Human") %>%
+  filter(!is.na(`Patient status`)) %>%
+  mutate(mutation = ifelse(id %in% tmp1$id, "Mutated", "No mutation"))
+
+pd %>%
+  count(mutation) %>%
+  knitr::kable()
+
+```
+
+### Tagging all genomes with N501Y mutation
+
+Simple example of coding metadata with a specific mutation
+
+```{r}
+
+tmp1 <- mutations %>%
+  filter(hgvs_p=="p.Asn501Tyr")
+
+pd <- metadata %>%
+  filter(species=="Human") %>%
+  mutate(mutation = ifelse(id %in% tmp1$id, "Mutated", "No mutation"))
+
+pd %>%
+  count(mutation) %>%
+  knitr::kable()
+
+```
+
+### Gender example
+
+Beware! This is the raw patient metadata - they need to be cleaned!
+
+```{r}
+
+tmp1 <- mutations %>%
+  filter(aa_change=="N501Y")
+
+pd <- metadata %>%
+  filter(species=="Human") %>%
+  mutate(mutation = ifelse(id %in% tmp1$id, "Has mutation", "Wildtype"))
+
+pd %>%
+  group_by(`Gender`) %>%
+  count(mutation) %>%
+  knitr::kable()
+
+pd %>%
+  mutate(Gender = str_to_lower(Gender)) %>%
+  mutate(Gender = ifelse(Gender=="woman", "female", Gender)) %>%
+  mutate(Gender = ifelse(Gender=="unknown", "unknown", Gender)) %>%
+  group_by(region,Gender) %>%
+  summarise(mutated = sum(mutation=="Mutated"),
+            not_mutated = sum(mutation!="Mutated")) %>%
+  arrange(region, Gender) %>%
+  knitr::kable()
+
+```
+
+## Gene focus 
+
+### Genomes with mutations pr. gene
+
+```{r}
+
+mutations %>%
+  group_by(gene, type) %>%
+  count() %>%
+  knitr::kable()
+
+mutations %>%
+  group_by(gene) %>%
+  summarise(N=sum(type=="N"),
+            S=sum(type=="S"),
+            NS = N/S) %>%
+  arrange(desc(NS)) %>%
+  knitr::kable()
+
+```
+
+# Genomes sampled pr. week
+
+```{r}
+
+pd <- metadata %>%
+  filter(species=="Human") %>%
+  mutate(date_bin = cut(date, breaks = "1 week")) %>%
+  group_by(date_bin) %>%
+  count()
+
+newlevels <- sort(levels(pd$date_bin))
+
+pd <- pd %>% 
+  mutate(date_bin = fct_relevel(date_bin, newlevels)) %>% 
+  ungroup() %>%
+  mutate(date_bin=ymd(date_bin))
+
+ggplot(pd, aes(x=date_bin, y=n)) + 
+  geom_col() +
+  xlab("Sample collection date") +
+  ylab("Number of genomes") +
+  scale_x_date(name = "", date_labels = "%B") +
+  NULL
+
+```
+
+# Genomes submitted pr. week
+
+```{r}
+
+pd <- metadata %>%
+  filter(species=="Human") %>%
+  mutate(date_bin = cut(ymd(date_submitted), breaks = "1 week")) %>%
+  group_by(date_bin) %>%
+  count()
+
+newlevels <- sort(levels(pd$date_bin))
+
+pd <- pd %>% 
+  mutate(date_bin = fct_relevel(date_bin, newlevels)) %>% 
+  ungroup() %>%
+  mutate(date_bin=ymd(date_bin))
+
+ggplot(pd, aes(x=date_bin, y=n)) + 
+  geom_col() +
+  xlab("Sample submission date") +
+  ylab("Number of genomes") +
+  scale_x_date(name = "", date_labels = "%B") +
+  NULL
+
+```
+
+# Mutational clock
+
+```{r}
+
+tmp <- mutations %>% 
+  group_by(id) %>% 
+  distinct(position) %>%
+  summarise(mutations = n())
+
+interesting_lineages <- c("B.1.1.7", "P.1", "B.1", "B.1.351")
+
+pd <- metadata %>% 
+  left_join(tmp) %>%
+  select(id, mutations,everything()) %>%
+  filter(species=="Human") %>%
+  mutate(pango2 = ifelse(pangolin_lineage %in% interesting_lineages,
+                         pangolin_lineage, "Other lineages")) %>%
+  group_by(date,mutations,pango2) %>%
+  count()
+
+ggplot(pd, aes(x=date, y=mutations, color=pango2, size=n)) +
+  geom_point() + 
+  geom_smooth(aes(color=pango2), method="lm", se=F) +
+  NULL
+
+```
+
+# World Mutational clock (Syn vs. Non-Syn)
+
+```{r}
+
+interesting_lineages <- c("B.1.1.7", "P.1", "B.1.351")
+
+tmp <- metadata %>% 
+  filter(species=="Human") %>%
+  filter(!is.na(date)) %>%
+  mutate(pango2 = ifelse(pangolin_lineage %in% interesting_lineages,
+                         pangolin_lineage, "Other lineages"))
+
+pd <-  tmp %>%
+  group_by(date,pango2, count_N, count_S) %>%
+  count() %>%
+  pivot_longer(names_to = "type", 
+              values_to = "mutations", 
+                   cols = c(count_N, count_S)) %>%
+  mutate(type = fct_recode(type, "Synonymous mutations"="count_S",
+                           "Nonsynonymous mutations"="count_N")) %>%
+  mutate(pango2 = factor(pango2, 
+                         levels=c("P.1", "B.1.1.7", "B.1.351", "Other lineages")
+                         )
+         )
+
+ggplot(pd, aes(x=date, y=mutations, color=pango2, size=n)) +
+  geom_point(alpha=0.5) + 
+  geom_smooth(method="lm", se=F, size=1, show.legend = F) +
+  ylab("Accumulated mutations") +
+  facet_wrap(~type) +
+  theme(axis.title.x = element_blank()) +
+  scale_color_aaas(name="Lineage") +
+  scale_size_continuous(name = "Genomes") +
+  theme(strip.background = element_blank()) +
+  ggtitle(paste(nrow(tmp), " genomes (youngest genome:", max(pd$date), ")", sep=""))
+
+
+```
+
+
+# DK Mutational clock (Syn vs. Non-Syn)
+
+```{r}
+
+interesting_lineages <- c("B.1.1.7", "P.1", "B.1", "B.1.351")
+
+tmp <- metadata %>% 
+  filter(species=="Human" & country=="Denmark") %>%
+  mutate(pango2 = ifelse(pangolin_lineage %in% interesting_lineages,
+                         pangolin_lineage, "Other lineages"))
+
+pd <-  tmp %>%
+  group_by(date,pango2, count_N, count_S) %>%
+  count() %>%
+  pivot_longer(names_to = "type", 
+              values_to = "mutations", 
+                   cols = c(count_N, count_S)) %>%
+  mutate(type = fct_recode(type, "Synonymous mutations"="count_S",
+                           "Nonsynonymous mutations"="count_N"))
+
+
+ggplot(pd, aes(x=date, y=mutations, color=pango2, size=n)) +
+  geom_point(alpha=0.5) + 
+  geom_smooth(method="lm", se=F, size=1, show.legend = F) +
+  ylab("Accumulated mutations") +
+  facet_wrap(~type) +
+  theme(axis.title.x = element_blank()) +
+  scale_color_aaas(name="Lineage") +
+  scale_size_continuous(name = "Genomes") +
+  theme(strip.background = element_blank()) +
+  ggtitle(paste(nrow(tmp), " Danish genomes (youngest genome:", max(pd$date), ")", sep="")) +
+  NULL
+
+```
+
+
+# D614G frequency in weekly bins
+
+```{r}
+
+tmp1 <- mutations %>%
+  filter(gene=="S" & aa_change=="D614G") 
+
+pd <- metadata %>%
+  filter(species=="Human") %>%
+  mutate(mutation = ifelse(id %in% tmp1$id, "mutated", "Other")) %>%
+  mutate(date_bin = cut(date, breaks = "week")) %>%
+  group_by(date_bin) %>%
+  count(mutation)
+
+newlevels <- sort(levels(pd$date_bin))
+
+pd <- pd %>% 
+  mutate(date_bin = fct_relevel(date_bin, newlevels)) %>% 
+  ungroup() %>%
+  mutate(date_bin=ymd(date_bin)) %>%
+  pivot_wider(names_from = mutation, values_from=n, values_fill =0)
+
+ggplot(pd, aes(x=date_bin, y=mutated/(mutated+Other), size=mutated+Other))+   geom_point() +
+  geom_hline(yintercept = 1, linetype="dashed", color="#808080") +
+  xlab("") +
+  ylab("Proportion of genomes with mutation") +
+  scale_size("Number of genomes") +
+  scale_x_date(name = "", date_labels = "%B") +
+  NULL
+
+```
+
+
+# D614G around the world
+
+```{r}
+
+tmp1 <- mutations %>%
+  filter(gene=="S" & aa_change=="D614G")
+
+x <- metadata %>%
+  filter(species=="Human") %>%
+  mutate(mutation = ifelse(id %in% tmp1$id, "mutated", "Other")) %>%
+  group_by(country) %>%
+  summarise(n_vui=sum(mutation=="mutated"), 
+            n_total=n()
+            ) %>%
+  filter(n_vui > 10) %>%
+  arrange(desc(n_vui)) %>%
+  slice(1:9)
+
+knitr::kable(x)
+
+pd <- metadata %>%
+  filter(species=="Human") %>%
+  filter(country %in% x$country) %>%
+  mutate(mutation = ifelse(id %in% tmp1$id, "mutated", "Other")) %>%
+  mutate(date_bin = cut(date, breaks = "7 days")) %>%
+  group_by(date_bin, country) %>%
+  count(mutation)
+
+newlevels <- sort(levels(pd$date_bin))
+
+pd <- pd %>% 
+  mutate(date_bin = fct_relevel(date_bin, newlevels)) %>% 
+  ungroup() %>%
+  mutate(date_bin=ymd(date_bin)) %>%
+  pivot_wider(names_from = mutation, values_from=n, values_fill =0) %>%
+  merge(x) %>%
+  mutate(label = fct_reorder(country, .x = n_vui, .desc = TRUE)) %>%
+  {.}
+
+ggplot(pd, aes(x=date_bin, y=mutated/(mutated+Other), 
+               color=country,
+               size=mutated+Other) ) + 
+  geom_point() +
+  geom_line(size=0.33) +
+  facet_wrap( ~label, scales = "free") +
+  xlab("") +
+  ylab("Proportion of genomes with mutation") +
+  scale_size("Number of genomes") +
+  ggsci::scale_color_aaas(name="") +
+  ggtitle("Growth of D614G pr. week\nNotice different scale on Y axis") +
+  NULL
+
+```
+
+
+
+# N501Y around the world
+
+Fraction of genomes within the last 28 days.
+
+We must have at least 10 "UK variants" and at least 100 genomes total.
+
+```{r}
+
+tmp1 <- mutations %>%
+  filter(gene=="S" & aa_change=="N501Y")
+
+x <- metadata %>%
+  filter(species=="Human") %>%
+  mutate(mutation = ifelse(id %in% tmp1$id, "mutated", "Other")) %>%
+  group_by(country) %>%
+  summarise(n_vui=sum(mutation=="mutated"), 
+            n_total=n()
+            ) %>%
+  filter(n_vui > 10) %>%
+  arrange(desc(n_vui)) %>%
+  slice(1:9)
+
+knitr::kable(x)
+
+pd <- metadata %>%
+  filter(species=="Human") %>%
+  #filter(date > "2020-09-01") %>%
+  filter(country %in% x$country) %>%
+  mutate(mutation = ifelse(id %in% tmp1$id, "mutated", "Other")) %>%
+  mutate(date_bin = cut(date, breaks = "7 days")) %>%
+  group_by(date_bin, country) %>%
+  count(mutation)
+
+newlevels <- sort(levels(pd$date_bin))
+
+pd <- pd %>% 
+  mutate(date_bin = fct_relevel(date_bin, newlevels)) %>% 
+  ungroup() %>%
+  mutate(date_bin=ymd(date_bin)) %>%
+  pivot_wider(names_from = mutation, values_from=n, values_fill =0) %>%
+  merge(x) %>%
+  mutate(label = fct_reorder(paste(country, "\nN501Y=", n_vui,sep=""), .x = n_vui, .desc = TRUE)) %>%
+  {.}
+
+ggplot(pd, aes(x=date_bin, y=mutated/(mutated+Other), 
+               color=country,
+               size=mutated+Other) ) + 
+  geom_point() +
+  geom_line(size=1) +
+  facet_wrap( ~label, scales = "free") +
+  xlab("") +
+  ylab("Proportion of genomes with mutation") +
+  scale_size("Number of genomes") +
+  ggsci::scale_color_aaas(name="") +
+  ggtitle("Growth of N501Y pr. week\nNotice different scale on Y axis") +
+  NULL
+
+```
+
+# E484K + N501Y around the world
+
+```{r}
+
+tmp1 <- mutations %>%  filter(aa_change=="E484K" & gene=="S")
+tmp2 <- mutations %>%  filter(aa_change=="N501Y" & gene=="S")
+
+genomes_with_haplotype <- intersect(tmp1$id, tmp2$id)
+
+x <- metadata %>%
+  filter(species=="Human") %>%
+  mutate(mutation = ifelse(id %in% genomes_with_haplotype, "mutated", "Other")) %>%
+  group_by(country) %>%
+  summarise(n_vui = sum(mutation=="mutated"),
+          n_total = n(), 
+         fraction = n_vui/n_total
+         ) %>%
+  filter(n_vui > 10) %>%
+  arrange(desc(n_vui)) %>%
+  slice(1:9)
+
+knitr::kable(x)
+
+pd <- metadata %>%
+  filter(species=="Human") %>%
+  filter(country %in% x$country) %>%
+  mutate(mutation = ifelse(id %in% tmp1$id, "mutated", "Other")) %>%
+  mutate(date_bin = cut(date, breaks = "7 days")) %>%
+  group_by(date_bin, country) %>%
+  count(mutation)
+
+newlevels <- sort(levels(pd$date_bin))
+
+pd <- pd %>% 
+  mutate(date_bin = fct_relevel(date_bin, newlevels)) %>% 
+  ungroup() %>%
+  mutate(date_bin=ymd(date_bin)) %>%
+  pivot_wider(names_from = mutation, values_from=n, values_fill =0) %>%
+  merge(x) %>%
+  mutate(label = fct_reorder(paste(country, "\n n(variant) =", n_vui,sep=""), .x = n_vui, .desc = TRUE)) %>%
+  {.}
+
+ggplot(pd, aes(x=date_bin, y=mutated/(mutated+Other), 
+               color=country,
+               size=mutated+Other) ) + 
+  geom_point() +
+  geom_line(size=1) +
+  facet_wrap( ~label, scales = "free") +
+  xlab("") +
+  ylab("Proportion of genomes with mutation") +
+  scale_size("Number of genomes") +
+  ggsci::scale_color_aaas(name="") +
+  ggtitle("Growth of E484K + N501Y pr. week\nNotice different scale on Y axis") +
+  NULL
+
+```
+
+
+# N501Y in Denmark
+
+```{r}
+
+tmp1 <- mutations %>%
+  filter(gene=="S" & aa_change=="N501Y")
+
+pd <- metadata %>%
+  filter(species=="Human" & country=="Denmark") %>%
+  filter(date > "2020-11-01") %>%
+  mutate(mutation = ifelse(id %in% tmp1$id, "mutated", "Other")) %>%
+  mutate(date_bin = cut(date, breaks = "7 days")) %>%
+  group_by(date_bin, country) %>%
+  count(mutation)
+
+newlevels <- sort(levels(pd$date_bin))
+
+pd <- pd %>% 
+  mutate(date_bin = fct_relevel(date_bin, newlevels)) %>% 
+  ungroup() %>%
+  mutate(date_bin=ymd(date_bin)) %>%
+  pivot_wider(names_from = mutation, values_from=n, values_fill =0) %>%
+  {.}
+
+ggplot(pd, aes(x=date_bin, y=mutated/(mutated+Other), 
+               size=mutated+Other) ) + 
+  geom_point() +
+  geom_line(size=1) +
+  xlab("") +
+  ylab("Proportion of genomes with mutation") +
+  scale_size("Number of genomes") +
+  ggsci::scale_color_aaas(name="") +
+  ggtitle("Growth of N501Y pr. week") +
+  NULL
+
+```
+
