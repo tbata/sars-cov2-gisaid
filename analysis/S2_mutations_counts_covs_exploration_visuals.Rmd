@@ -13,7 +13,8 @@ editor_options:
 --- 
 
 ```{r}
-data_path <- "data/2021-06-18/"
+# data_path <- "data/2021-06-18/"
+source("analysis/hard_coded_params.R")
 ```
 
 # Using data version: `r data_path`
@@ -30,7 +31,6 @@ library(cowplot)
 data100_annotated<- readRDS( "output/data_100pb_pangolin_period1_withCovs.rds")
 dim(data100_annotated)
 names(data100_annotated)
-table()
 ```
 
 # Overview dataset 

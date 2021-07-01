@@ -8,6 +8,6 @@ editor_options:
   chunk_output_type: console
 ---
 
-Welcome to the repository of our full analysis.
-See further details to be added here after finlaizing a manuscript...
+Welcome to the repository describing the data parsing and  full analysis of public GISAID genomes.
+See further details to be added here after finalizing a manuscript...
 

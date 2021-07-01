@@ -14,10 +14,10 @@ Contributions:
 
 Repo: TB PV
 
-Data and covariate collection and integration: TB AA SB 
+Data and covariates collection and integration: TB AA SB PV
 Patient data outcome : PV DM RK (currently not added)
 
-Genome data pipeline and data parse: AA PV
+Genome data pipeline and data parse: AA PV 
 
 Data Analysis: AA SB TB PV RK  
 

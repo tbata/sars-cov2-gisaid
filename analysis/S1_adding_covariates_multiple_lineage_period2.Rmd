@@ -13,7 +13,8 @@ editor_options:
 --- 
 
 ```{r}
-data_path <- "data/2021-06-18/"
+# data_path <- "data/2021-06-18/"
+source("analysis/hard_coded_params.R")
 ```
 
 # Using data version: `r data_path`
