@@ -1,0 +1,1863 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Thomas Bataillon reusing PV examples" />
+
+
+<title>Extracting windows based counts of mutations from gisaid data freeze parsed by the snpEff pipeline</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/master/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #ffffff;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">sars-cov2-gisaid</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Extracting windows based counts of mutations from gisaid data freeze parsed by the snpEff pipeline</h1>
+<h4 class="author">Thomas Bataillon reusing PV examples</h4>
+<h4 class="date">Last update: 2021-06-28 13:42:45</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span> workflowr <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> </a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2021-06-28
+</p>
+<p>
+<strong>Checks:</strong> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 6 <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> 1
+</p>
+<p>
+<strong>Knit directory:</strong> <code>sars-cov2-gisaid/</code> <span class="glyphicon glyphicon-question-sign" aria-hidden="true" title="This is the local directory in which the code in this file was executed."> </span>
+</p>
+<p>
+This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis was created with <a
+  href="https://github.com/jdblischak/workflowr">workflowr</a> (version 1.6.2). The <em>Checks</em> tab describes the reproducibility checks that were applied when the results were created. The <em>Past versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguncommittedchanges"> <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> <strong>R Markdown file:</strong> uncommitted changes </a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguncommittedchanges" class="panel-collapse collapse">
+<div class="panel-body">
+<p>The R Markdown is untracked by Git. To know which version of the R Markdown file created these results, you’ll want to first commit it to the Git repo. If you’re still working on the analysis, you can ignore this warning. When you’re finished, you can run <code>wflow_publish</code> to commit the R Markdown file and build the HTML.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the global environment can affect the analysis in your R Markdown file in unknown ways. For reproduciblity it’s best to always run the code in an empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20210408code"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Seed:</strong> <code>set.seed(20210408)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20210408code" class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20210408)</code> was run prior to running the code in the R Markdown file. Setting a seed ensures that any results that rely on randomness, e.g. subsampling or permutations, are reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Session information:</strong> recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be confident that you successfully produced the results during this run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrong790cc80"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> 790cc80 </a>
+</p>
+</div>
+<div id="strongRepositoryversionstrong790cc80" class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version 790cc80. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .DS_Store
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    analysis/.Rhistory
+    Ignored:    data/.DS_Store
+
+Untracked files:
+    Untracked:  analysis/1_working_with_the_data.snpeff.v2.gisaid_v2.0.rmd
+    Untracked:  analysis/2_human_lineage_mutations.snpeff.v1.rmd
+    Untracked:  analysis/2_human_lineage_mutations.snpeff.v2.rmd
+    Untracked:  analysis/S0_creating_data_bywindows_lineages.Rmd
+    Untracked:  analysis/S0_creating_data_bywindows_lineages_byphase.Rmd
+    Untracked:  analysis/S1_adding_covariates_multiple_lineage_early_late.Rmd
+    Untracked:  analysis/S1_adding_covariates_multiple_lineage_period2.Rmd
+    Untracked:  analysis/S2_mutations_counts_covs_exploration_visuals.Rmd
+    Untracked:  analysis/S2_mutations_counts_covs_exploration_visuals_period2.Rmd
+    Untracked:  analysis/S4_mutation_counts_models_period2.Rmd
+    Untracked:  code/make_debug_miniature_dataset.R
+    Untracked:  code/make_genome_positions.R
+    Untracked:  data/2021-04-09/
+    Untracked:  data/2021-06-18/
+    Untracked:  data/MutCounts_with_covariates.csv
+    Untracked:  data/proteins_sarscov2_genome_positions.rds
+    Untracked:  how_to_work_together.md
+    Untracked:  output/data_100pb_pangolin_period1.rds
+    Untracked:  output/data_100pb_pangolin_period1_withCovs.rds
+    Untracked:  output/data_100pb_pangolin_period2.rds
+    Untracked:  output/data_100pb_pangolin_period2_withCovs.rds
+    Untracked:  output/data_100pb_pangolin_period3.rds
+
+Unstaged changes:
+    Modified:   README.md
+    Modified:   _workflowr.yml
+    Modified:   analysis/about.Rmd
+    Modified:   analysis/index.Rmd
+    Modified:   code/README.md
+    Modified:   data/README.md
+    Modified:   output/README.md
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not included in this status report because it is ok for generated content to have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+<p>
+There are no past versions. Publish this analysis with <code>wflow_publish()</code> to start tracking its development.
+</p>
+<hr>
+</div>
+</div>
+</div>
+<div id="overview" class="section level1">
+<h1>Overview</h1>
+<ul>
+<li>We filter away a few genomes (wrong date etc).</li>
+<li>We create summaries binning by genomic windows starting at each gene, stratifying by pangolin lineages</li>
+<li>We output counts as rds files for each lineage separately</li>
+</ul>
+<pre class="r"><code># data_path &lt;- &quot;data/2021-04-09/&quot; # depreacted in the worlfklowr project 
+data_path &lt;- &quot;data/2021-06-18/&quot;</code></pre>
+</div>
+<div id="using-data-version-data2021-06-18" class="section level1">
+<h1>Using data version: data/2021-06-18/</h1>
+</div>
+<div id="init-loading-libraries-and-data" class="section level1">
+<h1>Init: loading libraries and data</h1>
+<pre class="r"><code>library(tidyverse)
+library(cowplot)  # For theme
+library(lubridate)
+library(ggsci)
+library(ggrepel)
+
+text_base_size   &lt;- 10   # in pt
+ggplot_text_size &lt;- text_base_size / ggplot2::.pt
+# Now use: geom_text(..., size = ggplot_text_size)
+theme_set(theme_cowplot(font_size = text_base_size, 
+                        rel_small = 1, rel_tiny = 1, 
+                        rel_large = 1))
+
+
+mutations    &lt;- read_rds(paste(data_path, &quot;/mutations_snpeff_annotated_tidy_300K_downsampled.rds&quot;, sep=&quot;&quot;))
+metadata  &lt;- read_rds(paste(data_path, &quot;/metadata_snpeff_tidy_300K_downsampled.rds&quot;,sep=&quot;&quot;)) 
+genomes_md &lt;- metadata %&gt;% 
+  # left_join(phylogeny_md) %&gt;% #now obsolete as we have a single metadata rds
+  mutate(date = ymd(date)) %&gt;%
+  filter(species %in% c(&quot;Human&quot;, &quot;Mink&quot;)) %&gt;%
+  mutate(date_sub = str_sub(date,1,4)) %&gt;%
+  filter(date_sub  %in% c(&quot;2019&quot;,&quot;2020&quot;,&quot;2021&quot;)) %&gt;%
+  
+  {.}</code></pre>
+</div>
+<div id="a-quick-view-of-the-merged" class="section level1">
+<h1>A quick view of the merged</h1>
+<pre class="r"><code>names(metadata)</code></pre>
+<pre><code> [1] &quot;id&quot;                              &quot;Virus name&quot;                     
+ [3] &quot;Type&quot;                            &quot;Accession ID&quot;                   
+ [5] &quot;Collection date&quot;                 &quot;Location&quot;                       
+ [7] &quot;region&quot;                          &quot;country&quot;                        
+ [9] &quot;division&quot;                        &quot;Additional location information&quot;
+[11] &quot;Sequence length&quot;                 &quot;Host&quot;                           
+[13] &quot;Patient age&quot;                     &quot;Gender&quot;                         
+[15] &quot;Clade&quot;                           &quot;pangolin_lineage&quot;               
+[17] &quot;Pangolin version&quot;                &quot;Variant&quot;                        
+[19] &quot;AA Substitutions&quot;                &quot;date_submitted&quot;                 
+[21] &quot;Is reference?&quot;                   &quot;Is complete?&quot;                   
+[23] &quot;Is high coverage?&quot;               &quot;Is low coverage?&quot;               
+[25] &quot;N-Content&quot;                       &quot;GC-Content&quot;                     
+[27] &quot;species&quot;                         &quot;date&quot;                           
+[29] &quot;Patient status&quot;                  &quot;Passage&quot;                        
+[31] &quot;Specimen&quot;                        &quot;Additional host information&quot;    
+[33] &quot;Lineage&quot;                         &quot;Sampling strategy&quot;              
+[35] &quot;Last vaccinated&quot;                 &quot;count_N&quot;                        
+[37] &quot;count_S&quot;                        </code></pre>
+<pre class="r"><code>dim(genomes_md) #current size of the genomes_md.</code></pre>
+<pre><code>[1] 292690     38</code></pre>
+<pre class="r"><code>names(genomes_md)</code></pre>
+<pre><code> [1] &quot;id&quot;                              &quot;Virus name&quot;                     
+ [3] &quot;Type&quot;                            &quot;Accession ID&quot;                   
+ [5] &quot;Collection date&quot;                 &quot;Location&quot;                       
+ [7] &quot;region&quot;                          &quot;country&quot;                        
+ [9] &quot;division&quot;                        &quot;Additional location information&quot;
+[11] &quot;Sequence length&quot;                 &quot;Host&quot;                           
+[13] &quot;Patient age&quot;                     &quot;Gender&quot;                         
+[15] &quot;Clade&quot;                           &quot;pangolin_lineage&quot;               
+[17] &quot;Pangolin version&quot;                &quot;Variant&quot;                        
+[19] &quot;AA Substitutions&quot;                &quot;date_submitted&quot;                 
+[21] &quot;Is reference?&quot;                   &quot;Is complete?&quot;                   
+[23] &quot;Is high coverage?&quot;               &quot;Is low coverage?&quot;               
+[25] &quot;N-Content&quot;                       &quot;GC-Content&quot;                     
+[27] &quot;species&quot;                         &quot;date&quot;                           
+[29] &quot;Patient status&quot;                  &quot;Passage&quot;                        
+[31] &quot;Specimen&quot;                        &quot;Additional host information&quot;    
+[33] &quot;Lineage&quot;                         &quot;Sampling strategy&quot;              
+[35] &quot;Last vaccinated&quot;                 &quot;count_N&quot;                        
+[37] &quot;count_S&quot;                         &quot;date_sub&quot;                       </code></pre>
+<pre class="r"><code>head(genomes_md) %&gt;% knitr::kable(digits = 3)</code></pre>
+<table style="width:100%;">
+<colgroup>
+<col width="0%" />
+<col width="4%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="3%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="3%" />
+<col width="1%" />
+<col width="0%" />
+<col width="1%" />
+<col width="0%" />
+<col width="0%" />
+<col width="1%" />
+<col width="1%" />
+<col width="0%" />
+<col width="37%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="2%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="0%" />
+<col width="1%" />
+<col width="1%" />
+<col width="0%" />
+<col width="1%" />
+<col width="3%" />
+<col width="0%" />
+<col width="2%" />
+<col width="1%" />
+<col width="0%" />
+<col width="0%" />
+<col width="1%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">id</th>
+<th align="left">Virus name</th>
+<th align="left">Type</th>
+<th align="left">Accession ID</th>
+<th align="left">Collection date</th>
+<th align="left">Location</th>
+<th align="left">region</th>
+<th align="left">country</th>
+<th align="left">division</th>
+<th align="left">Additional location information</th>
+<th align="right">Sequence length</th>
+<th align="left">Host</th>
+<th align="left">Patient age</th>
+<th align="left">Gender</th>
+<th align="left">Clade</th>
+<th align="left">pangolin_lineage</th>
+<th align="left">Pangolin version</th>
+<th align="left">Variant</th>
+<th align="left">AA Substitutions</th>
+<th align="left">date_submitted</th>
+<th align="left">Is reference?</th>
+<th align="left">Is complete?</th>
+<th align="left">Is high coverage?</th>
+<th align="left">Is low coverage?</th>
+<th align="right">N-Content</th>
+<th align="right">GC-Content</th>
+<th align="left">species</th>
+<th align="left">date</th>
+<th align="left">Patient status</th>
+<th align="left">Passage</th>
+<th align="left">Specimen</th>
+<th align="left">Additional host information</th>
+<th align="left">Lineage</th>
+<th align="left">Sampling strategy</th>
+<th align="left">Last vaccinated</th>
+<th align="right">count_N</th>
+<th align="right">count_S</th>
+<th align="left">date_sub</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">1578694</td>
+<td align="left">hCoV-19/Norway/5612/2021</td>
+<td align="left">betacoronavirus</td>
+<td align="left">EPI_ISL_1578694</td>
+<td align="left">2021-03-02</td>
+<td align="left">Europe / Norway / More og Romsdal</td>
+<td align="left">Europe</td>
+<td align="left">Norway</td>
+<td align="left">More og Romsdal</td>
+<td align="left">NA</td>
+<td align="right">29809</td>
+<td align="left">Human</td>
+<td align="left">unknown</td>
+<td align="left">unknown</td>
+<td align="left">GRY</td>
+<td align="left">B.1.1.7</td>
+<td align="left">2021-06-05</td>
+<td align="left">NA</td>
+<td align="left">(Spike_H69del,NS8_Q27stop,NSP3_T183I,Spike_T716I,NSP6_S106del,N_R203K,Spike_A570D,NSP13_K460R,NSP13_P78S,Spike_N501Y,NSP3_I1412T,NS8_R52I,Spike_P681H,Spike_Y144del,NS8_P93T,NSP6_G107del,NSP3_A890D,Spike_D1118H,NS3_P42H,NSP6_F108del,NS8_Y73C,N_G204R,Spike_V70del,NSP1_H81Y,NSP12_P323L,Spike_D614G,N_D3L,Spike_S982A,N_S235F)</td>
+<td align="left">2021-04-13</td>
+<td align="left">NA</td>
+<td align="left">TRUE</td>
+<td align="left">TRUE</td>
+<td align="left">NA</td>
+<td align="right">0.002</td>
+<td align="right">0.380</td>
+<td align="left">Human</td>
+<td align="left">2021-03-02</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="right">24</td>
+<td align="right">8</td>
+<td align="left">2021</td>
+</tr>
+<tr class="even">
+<td align="left">741336</td>
+<td align="left">hCoV-19/England/LOND-12E8625/2020</td>
+<td align="left">betacoronavirus</td>
+<td align="left">EPI_ISL_741336</td>
+<td align="left">2020-12-15</td>
+<td align="left">Europe / United Kingdom / England</td>
+<td align="left">Europe</td>
+<td align="left">United Kingdom</td>
+<td align="left">England</td>
+<td align="left">NA</td>
+<td align="right">29849</td>
+<td align="left">Human</td>
+<td align="left">unknown</td>
+<td align="left">unknown</td>
+<td align="left">GV</td>
+<td align="left">B.1.177.19</td>
+<td align="left">2021-06-15</td>
+<td align="left">NA</td>
+<td align="left">(NSP3_A1736V,Spike_E583D,NSP3_P1228L,NSP12_P323L,Spike_D614G,N_A252S,NSP10_P136S,N_A220V,NSP3_G282S,Spike_A222V)</td>
+<td align="left">2020-12-29</td>
+<td align="left">NA</td>
+<td align="left">TRUE</td>
+<td align="left">TRUE</td>
+<td align="left">NA</td>
+<td align="right">0.010</td>
+<td align="right">0.379</td>
+<td align="left">Human</td>
+<td align="left">2020-12-15</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="right">11</td>
+<td align="right">9</td>
+<td align="left">2020</td>
+</tr>
+<tr class="odd">
+<td align="left">437722</td>
+<td align="left">hCoV-19/Saudi Arabia/KAUST-Makkah225/2020</td>
+<td align="left">betacoronavirus</td>
+<td align="left">EPI_ISL_437722</td>
+<td align="left">2020-04-06</td>
+<td align="left">Asia / Saudi Arabia / Makkah</td>
+<td align="left">Asia</td>
+<td align="left">Saudi Arabia</td>
+<td align="left">Makkah</td>
+<td align="left">NA</td>
+<td align="right">29903</td>
+<td align="left">Human</td>
+<td align="left">42</td>
+<td align="left">Male</td>
+<td align="left">S</td>
+<td align="left">A</td>
+<td align="left">2021-06-15</td>
+<td align="left">NA</td>
+<td align="left">(N_S202N,NS8_L84S)</td>
+<td align="left">2020-05-11</td>
+<td align="left">NA</td>
+<td align="left">TRUE</td>
+<td align="left">TRUE</td>
+<td align="left">NA</td>
+<td align="right">NA</td>
+<td align="right">0.380</td>
+<td align="left">Human</td>
+<td align="left">2020-04-06</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="left">2020</td>
+</tr>
+<tr class="even">
+<td align="left">1353089</td>
+<td align="left">hCoV-19/Germany/BE-RKI-I-045665/2021</td>
+<td align="left">betacoronavirus</td>
+<td align="left">EPI_ISL_1353089</td>
+<td align="left">2021-02-18</td>
+<td align="left">Europe / Germany / Berlin</td>
+<td align="left">Europe</td>
+<td align="left">Germany</td>
+<td align="left">Berlin</td>
+<td align="left">NA</td>
+<td align="right">29660</td>
+<td align="left">Human</td>
+<td align="left">unknown</td>
+<td align="left">unknown</td>
+<td align="left">GV</td>
+<td align="left">B.1.177.86</td>
+<td align="left">2021-06-05</td>
+<td align="left">NA</td>
+<td align="left">(NS7b_E39stop,Spike_L18F,N_D377Y,NSP2_L501F,NSP12_P323L,Spike_D614G,N_A220V,NS7a_T120I,Spike_A222V)</td>
+<td align="left">2021-03-25</td>
+<td align="left">NA</td>
+<td align="left">TRUE</td>
+<td align="left">TRUE</td>
+<td align="left">NA</td>
+<td align="right">0.000</td>
+<td align="right">0.379</td>
+<td align="left">Human</td>
+<td align="left">2021-02-18</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="right">9</td>
+<td align="right">10</td>
+<td align="left">2021</td>
+</tr>
+<tr class="odd">
+<td align="left">1924016</td>
+<td align="left">hCoV-19/USA/FL-CDC-STM-000057839/2021</td>
+<td align="left">betacoronavirus</td>
+<td align="left">EPI_ISL_1924016</td>
+<td align="left">2021-04-15</td>
+<td align="left">North America / USA / Florida</td>
+<td align="left">North America</td>
+<td align="left">USA</td>
+<td align="left">Florida</td>
+<td align="left">NA</td>
+<td align="right">29809</td>
+<td align="left">Human</td>
+<td align="left">26</td>
+<td align="left">Female</td>
+<td align="left">GRY</td>
+<td align="left">B.1.1.7</td>
+<td align="left">2021-06-15</td>
+<td align="left">NA</td>
+<td align="left">(Spike_H69del,NS8_Q27stop,NSP3_T183I,Spike_T716I,NSP6_S106del,N_R203K,Spike_A570D,Spike_N501Y,NSP3_I1412T,NS8_R52I,Spike_P681H,Spike_Y144del,Spike_S98F,NSP2_L550F,Spike_D138H,NSP6_G107del,NSP3_A890D,Spike_D1118H,NSP6_F108del,NS8_Y73C,N_G204R,Spike_V70del,NSP12_P323L,Spike_D614G,N_D3L,Spike_S982A,N_S235F)</td>
+<td align="left">2021-05-06</td>
+<td align="left">NA</td>
+<td align="left">TRUE</td>
+<td align="left">TRUE</td>
+<td align="left">NA</td>
+<td align="right">NA</td>
+<td align="right">0.380</td>
+<td align="left">Human</td>
+<td align="left">2021-04-15</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="right">22</td>
+<td align="right">7</td>
+<td align="left">2021</td>
+</tr>
+<tr class="even">
+<td align="left">2125949</td>
+<td align="left">hCoV-19/Germany/SL-RKI-I-142044/2021</td>
+<td align="left">betacoronavirus</td>
+<td align="left">EPI_ISL_2125949</td>
+<td align="left">2021-04-26</td>
+<td align="left">Europe / Germany / Saarland</td>
+<td align="left">Europe</td>
+<td align="left">Germany</td>
+<td align="left">Saarland</td>
+<td align="left">NA</td>
+<td align="right">29854</td>
+<td align="left">Human</td>
+<td align="left">unknown</td>
+<td align="left">unknown</td>
+<td align="left">GRY</td>
+<td align="left">B.1.1.7</td>
+<td align="left">2021-06-15</td>
+<td align="left">NA</td>
+<td align="left">(Spike_H69del,NS8_Q27stop,NSP3_T183I,Spike_T716I,NSP6_S106del,N_R203K,Spike_A570D,Spike_N501Y,NSP3_I1412T,NS8_R52I,Spike_P681H,Spike_Y144del,NSP6_G107del,NSP3_A890D,Spike_D1118H,NSP6_F108del,NS8_Y73C,N_G204R,Spike_V70del,NSP12_P323L,Spike_D614G,N_D3L,Spike_S982A,N_S235F)</td>
+<td align="left">2021-05-17</td>
+<td align="left">NA</td>
+<td align="left">TRUE</td>
+<td align="left">TRUE</td>
+<td align="left">NA</td>
+<td align="right">0.000</td>
+<td align="right">0.380</td>
+<td align="left">Human</td>
+<td align="left">2021-04-26</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="right">19</td>
+<td align="right">8</td>
+<td align="left">2021</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="adding-genomic-coordinates-that-are-gene-centric" class="section level1">
+<h1>Adding genomic coordinates that are gene-centric</h1>
+<p>(Note, here or in the <code>/data/Readme.md</code>, provide details for the data source of <code>output/proteins_sarscov2_genome_positions.rds</code> )</p>
+<pre class="r"><code>gene_positions_md &lt;-readRDS(&quot;data/proteins_sarscov2_genome_positions.rds&quot;)
+gene_positions_md %&gt;% arrange(start_pos) %&gt;%knitr::kable()</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">name</th>
+<th align="right">start_pos</th>
+<th align="right">end_pos</th>
+<th align="right">gene_length</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">leader</td>
+<td align="right">266</td>
+<td align="right">806</td>
+<td align="right">540</td>
+</tr>
+<tr class="even">
+<td align="left">nsp2</td>
+<td align="right">806</td>
+<td align="right">2720</td>
+<td align="right">1914</td>
+</tr>
+<tr class="odd">
+<td align="left">nsp3</td>
+<td align="right">2720</td>
+<td align="right">8555</td>
+<td align="right">5835</td>
+</tr>
+<tr class="even">
+<td align="left">nsp4</td>
+<td align="right">8555</td>
+<td align="right">10055</td>
+<td align="right">1500</td>
+</tr>
+<tr class="odd">
+<td align="left">proteinase</td>
+<td align="right">10055</td>
+<td align="right">10973</td>
+<td align="right">918</td>
+</tr>
+<tr class="even">
+<td align="left">nsp6</td>
+<td align="right">10973</td>
+<td align="right">11843</td>
+<td align="right">870</td>
+</tr>
+<tr class="odd">
+<td align="left">nsp7</td>
+<td align="right">11843</td>
+<td align="right">12092</td>
+<td align="right">249</td>
+</tr>
+<tr class="even">
+<td align="left">nsp8</td>
+<td align="right">12092</td>
+<td align="right">12686</td>
+<td align="right">594</td>
+</tr>
+<tr class="odd">
+<td align="left">nsp9</td>
+<td align="right">12686</td>
+<td align="right">13025</td>
+<td align="right">339</td>
+</tr>
+<tr class="even">
+<td align="left">nsp10</td>
+<td align="right">13025</td>
+<td align="right">13442</td>
+<td align="right">417</td>
+</tr>
+<tr class="odd">
+<td align="left">nsp11</td>
+<td align="right">13442</td>
+<td align="right">13481</td>
+<td align="right">39</td>
+</tr>
+<tr class="even">
+<td align="left">RDRp</td>
+<td align="right">13442</td>
+<td align="right">16238</td>
+<td align="right">2796</td>
+</tr>
+<tr class="odd">
+<td align="left">helicase</td>
+<td align="right">16237</td>
+<td align="right">18040</td>
+<td align="right">1803</td>
+</tr>
+<tr class="even">
+<td align="left">exonuclease</td>
+<td align="right">18040</td>
+<td align="right">19621</td>
+<td align="right">1581</td>
+</tr>
+<tr class="odd">
+<td align="left">endoRNAse</td>
+<td align="right">19621</td>
+<td align="right">20659</td>
+<td align="right">1038</td>
+</tr>
+<tr class="even">
+<td align="left">methyltransferase</td>
+<td align="right">20659</td>
+<td align="right">21550</td>
+<td align="right">891</td>
+</tr>
+<tr class="odd">
+<td align="left">S</td>
+<td align="right">21563</td>
+<td align="right">25382</td>
+<td align="right">3819</td>
+</tr>
+<tr class="even">
+<td align="left">orf3a</td>
+<td align="right">25393</td>
+<td align="right">26218</td>
+<td align="right">825</td>
+</tr>
+<tr class="odd">
+<td align="left">E</td>
+<td align="right">26245</td>
+<td align="right">26470</td>
+<td align="right">225</td>
+</tr>
+<tr class="even">
+<td align="left">M</td>
+<td align="right">26523</td>
+<td align="right">27189</td>
+<td align="right">666</td>
+</tr>
+<tr class="odd">
+<td align="left">orf6</td>
+<td align="right">27202</td>
+<td align="right">27385</td>
+<td align="right">183</td>
+</tr>
+<tr class="even">
+<td align="left">orf7a</td>
+<td align="right">27394</td>
+<td align="right">27757</td>
+<td align="right">363</td>
+</tr>
+<tr class="odd">
+<td align="left">orf7b</td>
+<td align="right">27756</td>
+<td align="right">27885</td>
+<td align="right">129</td>
+</tr>
+<tr class="even">
+<td align="left">orf8</td>
+<td align="right">27894</td>
+<td align="right">28257</td>
+<td align="right">363</td>
+</tr>
+<tr class="odd">
+<td align="left">N</td>
+<td align="right">28274</td>
+<td align="right">29531</td>
+<td align="right">1257</td>
+</tr>
+<tr class="even">
+<td align="left">orf10</td>
+<td align="right">29558</td>
+<td align="right">29672</td>
+<td align="right">114</td>
+</tr>
+</tbody>
+</table>
+<p>Split into 100 bp windows in genome I position bins according to the gene starts to get a <code>position_bin</code> that in principle should match the ones computed by Susan in the co-variate files : <code>genome_bin</code> gives genomic windows numbered consecutively 1, 2, 3… <code>window_start</code> provides the genomic coordinate of each <code>genome_bin</code> Finally <code>gene_bin</code> renames consecutively the windows 1,2, 3, … within each gene.</p>
+<p>Having both coordinate system allows - in principle - to retain some level of sanity while juggling with the co-variates (see following script S1 for aggregating all co-variates compiled during the summer):</p>
+<pre class="r"><code>names(mutations)</code></pre>
+<pre><code> [1] &quot;id&quot;           &quot;CHROM&quot;        &quot;position&quot;     &quot;ref_base&quot;     &quot;variant_base&quot;
+ [6] &quot;gene&quot;         &quot;biotype&quot;      &quot;impact&quot;       &quot;effect&quot;       &quot;hgvs_c&quot;      
+[11] &quot;hgvs_p&quot;       &quot;aa_position&quot;  &quot;type&quot;         &quot;aa_change&quot;   </code></pre>
+<pre class="r"><code>names(genomes_md)</code></pre>
+<pre><code> [1] &quot;id&quot;                              &quot;Virus name&quot;                     
+ [3] &quot;Type&quot;                            &quot;Accession ID&quot;                   
+ [5] &quot;Collection date&quot;                 &quot;Location&quot;                       
+ [7] &quot;region&quot;                          &quot;country&quot;                        
+ [9] &quot;division&quot;                        &quot;Additional location information&quot;
+[11] &quot;Sequence length&quot;                 &quot;Host&quot;                           
+[13] &quot;Patient age&quot;                     &quot;Gender&quot;                         
+[15] &quot;Clade&quot;                           &quot;pangolin_lineage&quot;               
+[17] &quot;Pangolin version&quot;                &quot;Variant&quot;                        
+[19] &quot;AA Substitutions&quot;                &quot;date_submitted&quot;                 
+[21] &quot;Is reference?&quot;                   &quot;Is complete?&quot;                   
+[23] &quot;Is high coverage?&quot;               &quot;Is low coverage?&quot;               
+[25] &quot;N-Content&quot;                       &quot;GC-Content&quot;                     
+[27] &quot;species&quot;                         &quot;date&quot;                           
+[29] &quot;Patient status&quot;                  &quot;Passage&quot;                        
+[31] &quot;Specimen&quot;                        &quot;Additional host information&quot;    
+[33] &quot;Lineage&quot;                         &quot;Sampling strategy&quot;              
+[35] &quot;Last vaccinated&quot;                 &quot;count_N&quot;                        
+[37] &quot;count_S&quot;                         &quot;date_sub&quot;                       </code></pre>
+<pre class="r"><code>names(gene_positions_md)</code></pre>
+<pre><code>[1] &quot;name&quot;        &quot;start_pos&quot;   &quot;end_pos&quot;     &quot;gene_length&quot;</code></pre>
+<pre class="r"><code>names(gene_positions_md)[1]&lt;-&quot;gene&quot; # Renaming the gene column to make it compatible with the mutation tibble</code></pre>
+<pre class="r"><code>mutations_annotated &lt;- mutations %&gt;% 
+  left_join(genomes_md) %&gt;%
+  left_join(gene_positions_md) %&gt;%
+  mutate(genome_bin = position %/% 100) %&gt;% # abs genomic numbering 1, 2, etc.
+  mutate(window_start = genome_bin*100) %&gt;% # genomic coordinate
+  mutate(gene_bin = 1+ (position - start_pos) %/%100 ) %&gt;% #new calculation to get the bin number within each gene
+  filter(!is.na(species)) %&gt;%
+  {.}</code></pre>
+<pre><code>Joining, by = &quot;id&quot;</code></pre>
+<pre><code>Joining, by = &quot;gene&quot;</code></pre>
+<pre class="r"><code>rm(mutations)
+dim(mutations_annotated)</code></pre>
+<pre><code>[1] 10003890       57</code></pre>
+<pre class="r"><code>names(mutations_annotated)</code></pre>
+<pre><code> [1] &quot;id&quot;                              &quot;CHROM&quot;                          
+ [3] &quot;position&quot;                        &quot;ref_base&quot;                       
+ [5] &quot;variant_base&quot;                    &quot;gene&quot;                           
+ [7] &quot;biotype&quot;                         &quot;impact&quot;                         
+ [9] &quot;effect&quot;                          &quot;hgvs_c&quot;                         
+[11] &quot;hgvs_p&quot;                          &quot;aa_position&quot;                    
+[13] &quot;type&quot;                            &quot;aa_change&quot;                      
+[15] &quot;Virus name&quot;                      &quot;Type&quot;                           
+[17] &quot;Accession ID&quot;                    &quot;Collection date&quot;                
+[19] &quot;Location&quot;                        &quot;region&quot;                         
+[21] &quot;country&quot;                         &quot;division&quot;                       
+[23] &quot;Additional location information&quot; &quot;Sequence length&quot;                
+[25] &quot;Host&quot;                            &quot;Patient age&quot;                    
+[27] &quot;Gender&quot;                          &quot;Clade&quot;                          
+[29] &quot;pangolin_lineage&quot;                &quot;Pangolin version&quot;               
+[31] &quot;Variant&quot;                         &quot;AA Substitutions&quot;               
+[33] &quot;date_submitted&quot;                  &quot;Is reference?&quot;                  
+[35] &quot;Is complete?&quot;                    &quot;Is high coverage?&quot;              
+[37] &quot;Is low coverage?&quot;                &quot;N-Content&quot;                      
+[39] &quot;GC-Content&quot;                      &quot;species&quot;                        
+[41] &quot;date&quot;                            &quot;Patient status&quot;                 
+[43] &quot;Passage&quot;                         &quot;Specimen&quot;                       
+[45] &quot;Additional host information&quot;     &quot;Lineage&quot;                        
+[47] &quot;Sampling strategy&quot;               &quot;Last vaccinated&quot;                
+[49] &quot;count_N&quot;                         &quot;count_S&quot;                        
+[51] &quot;date_sub&quot;                        &quot;start_pos&quot;                      
+[53] &quot;end_pos&quot;                         &quot;gene_length&quot;                    
+[55] &quot;genome_bin&quot;                      &quot;window_start&quot;                   
+[57] &quot;gene_bin&quot;                       </code></pre>
+</div>
+<div id="overview-of-data-optional" class="section level1">
+<h1>Overview of data (optional)</h1>
+<pre class="r"><code>pd &lt;- tibble() %&gt;%
+  bind_rows(tibble(&quot;Description&quot; = &quot;Genomes total&quot;, 
+                   &quot;n&quot; = genomes_md %&gt;% select(id) %&gt;% distinct() %&gt;% count() %&gt;% pull(n) )) %&gt;%
+  bind_rows(tibble(&quot;Description&quot; = &quot;Genome with mutations in protein coding regions&quot;,
+                   &quot;n&quot; = mutations_annotated %&gt;% select(id) %&gt;% distinct() %&gt;% count() %&gt;% pull(n) )) %&gt;%
+  bind_rows(tibble(&quot;Description&quot; = &quot;Unique mutations total&quot;,
+                   &quot;n&quot; = mutations_annotated %&gt;% select(position, variant_base) %&gt;% distinct() %&gt;% count() %&gt;% pull(n) )) %&gt;%
+  bind_rows(tibble(&quot;Description&quot; = &quot;Synonymous mutations&quot;,
+                   &quot;n&quot; = mutations_annotated %&gt;% filter(type==&quot;S&quot;) %&gt;% select(position, variant_base) %&gt;% distinct() %&gt;% count() %&gt;% pull(n) )) %&gt;%
+  bind_rows(tibble(&quot;Description&quot; = &quot;Nonsynonymous mutations&quot;,
+                   &quot;n&quot; = mutations_annotated %&gt;% filter(type==&quot;N&quot;) %&gt;% select(position, variant_base) %&gt;% distinct() %&gt;% count() %&gt;% pull(n) )) %&gt;%
+  bind_rows(tibble(&quot;Description&quot; = &quot;Human genomes&quot;,
+                   &quot;n&quot; = genomes_md %&gt;% filter(species==&quot;Human&quot;) %&gt;% count() %&gt;% pull(n) )) %&gt;%
+  bind_rows(tibble(&quot;Description&quot; = &quot;Mink genomes&quot;,
+                   &quot;n&quot; = genomes_md %&gt;% filter(species==&quot;Mink&quot;) %&gt;% count() %&gt;% pull(n) )) %&gt;%
+  bind_rows(tibble(&quot;Description&quot; = &quot;Other genomes&quot;,
+                   &quot;n&quot; = genomes_md %&gt;% filter(!species %in% c(&quot;Human&quot;,&quot;Mink&quot;)) %&gt;% count() %&gt;% pull(n) )) %&gt;%
+  
+  bind_rows(tibble(&quot;Description&quot; = &quot;Samples with Patient status&quot;,
+                   &quot;n&quot; = genomes_md %&gt;% filter(!is.na(`Patient status`)) %&gt;% count() %&gt;% pull(n) )) %&gt;%
+  {.}
+
+knitr::kable(pd)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Description</th>
+<th align="right">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Genomes total</td>
+<td align="right">292690</td>
+</tr>
+<tr class="even">
+<td align="left">Genome with mutations in protein coding regions</td>
+<td align="right">261159</td>
+</tr>
+<tr class="odd">
+<td align="left">Unique mutations total</td>
+<td align="right">40996</td>
+</tr>
+<tr class="even">
+<td align="left">Synonymous mutations</td>
+<td align="right">14293</td>
+</tr>
+<tr class="odd">
+<td align="left">Nonsynonymous mutations</td>
+<td align="right">26707</td>
+</tr>
+<tr class="even">
+<td align="left">Human genomes</td>
+<td align="right">292561</td>
+</tr>
+<tr class="odd">
+<td align="left">Mink genomes</td>
+<td align="right">129</td>
+</tr>
+<tr class="even">
+<td align="left">Other genomes</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Samples with Patient status</td>
+<td align="right">2789</td>
+</tr>
+</tbody>
+</table>
+<div id="unique-mutations-per.-pangolin-lineage" class="section level2">
+<h2>Unique mutations per. pangolin lineage</h2>
+<pre class="r"><code>mutations_annotated %&gt;%
+  #group_by(name,type, position) %&gt;% # Unique positions
+  group_by(pangolin_lineage,type, position, ref_base, variant_base) %&gt;% # Unique mutations
+  summarise(genomes_mutated=n()) %&gt;%
+  ungroup() %&gt;%
+  group_by(pangolin_lineage) %&gt;%
+  summarise(total = sum(genomes_mutated),
+                N = sum(type==&quot;N&quot;),
+                S = sum(type==&quot;S&quot;),
+               NS = N/S) %&gt;%
+  arrange(desc(total)) %&gt;%
+  slice(1:25) %&gt;%  # keep only the top of the distribution
+  knitr::kable()</code></pre>
+<pre><code>`summarise()` regrouping output by &#39;pangolin_lineage&#39;, &#39;type&#39;, &#39;position&#39;, &#39;ref_base&#39; (override with `.groups` argument)</code></pre>
+<pre><code>`summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">pangolin_lineage</th>
+<th align="right">total</th>
+<th align="right">N</th>
+<th align="right">S</th>
+<th align="right">NS</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">B.1.1.7</td>
+<td align="right">6085928</td>
+<td align="right">17897</td>
+<td align="right">10987</td>
+<td align="right">1.628925</td>
+</tr>
+<tr class="even">
+<td align="left">B.1.2</td>
+<td align="right">407923</td>
+<td align="right">7502</td>
+<td align="right">5139</td>
+<td align="right">1.459817</td>
+</tr>
+<tr class="odd">
+<td align="left">B.1.617.2</td>
+<td align="right">387066</td>
+<td align="right">3239</td>
+<td align="right">1947</td>
+<td align="right">1.663585</td>
+</tr>
+<tr class="even">
+<td align="left">B.1.177</td>
+<td align="right">247517</td>
+<td align="right">5022</td>
+<td align="right">3297</td>
+<td align="right">1.523203</td>
+</tr>
+<tr class="odd">
+<td align="left">P.1</td>
+<td align="right">219023</td>
+<td align="right">3163</td>
+<td align="right">2171</td>
+<td align="right">1.456932</td>
+</tr>
+<tr class="even">
+<td align="left">B.1.526</td>
+<td align="right">160159</td>
+<td align="right">3103</td>
+<td align="right">2212</td>
+<td align="right">1.402803</td>
+</tr>
+<tr class="odd">
+<td align="left">B.1.160</td>
+<td align="right">122481</td>
+<td align="right">2694</td>
+<td align="right">1802</td>
+<td align="right">1.495005</td>
+</tr>
+<tr class="even">
+<td align="left">B.1.1.519</td>
+<td align="right">102089</td>
+<td align="right">2734</td>
+<td align="right">1845</td>
+<td align="right">1.481843</td>
+</tr>
+<tr class="odd">
+<td align="left">B.1.351</td>
+<td align="right">92140</td>
+<td align="right">2026</td>
+<td align="right">1475</td>
+<td align="right">1.373559</td>
+</tr>
+<tr class="even">
+<td align="left">B.1.1.214</td>
+<td align="right">89580</td>
+<td align="right">1533</td>
+<td align="right">1056</td>
+<td align="right">1.451704</td>
+</tr>
+<tr class="odd">
+<td align="left">B.1</td>
+<td align="right">89521</td>
+<td align="right">4922</td>
+<td align="right">3158</td>
+<td align="right">1.558581</td>
+</tr>
+<tr class="even">
+<td align="left">B.1.429</td>
+<td align="right">84458</td>
+<td align="right">2266</td>
+<td align="right">1610</td>
+<td align="right">1.407453</td>
+</tr>
+<tr class="odd">
+<td align="left">B.1.1</td>
+<td align="right">67828</td>
+<td align="right">3773</td>
+<td align="right">2605</td>
+<td align="right">1.448368</td>
+</tr>
+<tr class="even">
+<td align="left">B.1.427/429</td>
+<td align="right">62126</td>
+<td align="right">1618</td>
+<td align="right">1184</td>
+<td align="right">1.366554</td>
+</tr>
+<tr class="odd">
+<td align="left">B.1.221</td>
+<td align="right">61805</td>
+<td align="right">1834</td>
+<td align="right">1314</td>
+<td align="right">1.395738</td>
+</tr>
+<tr class="even">
+<td align="left">B.1.258</td>
+<td align="right">61530</td>
+<td align="right">2092</td>
+<td align="right">1489</td>
+<td align="right">1.404970</td>
+</tr>
+<tr class="odd">
+<td align="left">B.1.1.284</td>
+<td align="right">51438</td>
+<td align="right">743</td>
+<td align="right">531</td>
+<td align="right">1.399247</td>
+</tr>
+<tr class="even">
+<td align="left">B.1.427</td>
+<td align="right">50621</td>
+<td align="right">1492</td>
+<td align="right">1112</td>
+<td align="right">1.341727</td>
+</tr>
+<tr class="odd">
+<td align="left">B.1.596</td>
+<td align="right">39023</td>
+<td align="right">1582</td>
+<td align="right">1062</td>
+<td align="right">1.489642</td>
+</tr>
+<tr class="even">
+<td align="left">B.1.258.17</td>
+<td align="right">38364</td>
+<td align="right">935</td>
+<td align="right">664</td>
+<td align="right">1.408133</td>
+</tr>
+<tr class="odd">
+<td align="left">B.1.177.21</td>
+<td align="right">38180</td>
+<td align="right">522</td>
+<td align="right">370</td>
+<td align="right">1.410811</td>
+</tr>
+<tr class="even">
+<td align="left">R.1</td>
+<td align="right">37780</td>
+<td align="right">929</td>
+<td align="right">717</td>
+<td align="right">1.295676</td>
+</tr>
+<tr class="odd">
+<td align="left">B.1.243</td>
+<td align="right">34727</td>
+<td align="right">1635</td>
+<td align="right">1126</td>
+<td align="right">1.452043</td>
+</tr>
+<tr class="even">
+<td align="left">B.1.177.12</td>
+<td align="right">34652</td>
+<td align="right">357</td>
+<td align="right">253</td>
+<td align="right">1.411067</td>
+</tr>
+<tr class="odd">
+<td align="left">B.1.525</td>
+<td align="right">28701</td>
+<td align="right">777</td>
+<td align="right">540</td>
+<td align="right">1.438889</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="pangolin-lineages-sample-size-distribution" class="section level2">
+<h2>Pangolin lineages sample size distribution</h2>
+<p>An overview of the top 25 lineages size</p>
+<pre class="r"><code>genomes_md %&gt;%
+  group_by(pangolin_lineage) %&gt;%
+  summarize( n_genomes = n()) %&gt;%
+  arrange(-n_genomes) %&gt;%
+  slice(1:25) %&gt;%
+  knitr::kable()</code></pre>
+<pre><code>`summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">pangolin_lineage</th>
+<th align="right">n_genomes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">B.1.1.7</td>
+<td align="right">138798</td>
+</tr>
+<tr class="even">
+<td align="left">B.1.2</td>
+<td align="right">12837</td>
+</tr>
+<tr class="odd">
+<td align="left">B.1.177</td>
+<td align="right">10783</td>
+</tr>
+<tr class="even">
+<td align="left">B.1</td>
+<td align="right">10218</td>
+</tr>
+<tr class="odd">
+<td align="left">B.1.617.2</td>
+<td align="right">9270</td>
+</tr>
+<tr class="even">
+<td align="left">B.1.1</td>
+<td align="right">6323</td>
+</tr>
+<tr class="odd">
+<td align="left">B.1.526</td>
+<td align="right">5108</td>
+</tr>
+<tr class="even">
+<td align="left">P.1</td>
+<td align="right">4730</td>
+</tr>
+<tr class="odd">
+<td align="left">B.1.160</td>
+<td align="right">3629</td>
+</tr>
+<tr class="even">
+<td align="left">B.1.1.214</td>
+<td align="right">3195</td>
+</tr>
+<tr class="odd">
+<td align="left">B.1.1.519</td>
+<td align="right">2996</td>
+</tr>
+<tr class="even">
+<td align="left">B.1.351</td>
+<td align="right">2809</td>
+</tr>
+<tr class="odd">
+<td align="left">B.1.429</td>
+<td align="right">2401</td>
+</tr>
+<tr class="even">
+<td align="left">B.1.221</td>
+<td align="right">2142</td>
+</tr>
+<tr class="odd">
+<td align="left">B.1.258</td>
+<td align="right">2051</td>
+</tr>
+<tr class="even">
+<td align="left">D.2</td>
+<td align="right">1848</td>
+</tr>
+<tr class="odd">
+<td align="left">B.1.1.284</td>
+<td align="right">1731</td>
+</tr>
+<tr class="even">
+<td align="left">B.1.427</td>
+<td align="right">1682</td>
+</tr>
+<tr class="odd">
+<td align="left">B.1.427/429</td>
+<td align="right">1562</td>
+</tr>
+<tr class="even">
+<td align="left">R.1</td>
+<td align="right">1506</td>
+</tr>
+<tr class="odd">
+<td align="left">B.1.243</td>
+<td align="right">1492</td>
+</tr>
+<tr class="even">
+<td align="left">B.1.177.21</td>
+<td align="right">1372</td>
+</tr>
+<tr class="odd">
+<td align="left">B.1.596</td>
+<td align="right">1362</td>
+</tr>
+<tr class="even">
+<td align="left">B.1.177.12</td>
+<td align="right">1150</td>
+</tr>
+<tr class="odd">
+<td align="left">B.1.258.17</td>
+<td align="right">1030</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>genomes_md %&gt;%
+  group_by(pangolin_lineage) %&gt;%
+  summarize( n_genomes = n()) %&gt;%
+  arrange(-n_genomes) %&gt;%
+  slice(1:25) -&gt; top25pangolin </code></pre>
+<pre><code>`summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+</div>
+</div>
+<div id="counts-of-mutations-in-100-bp-windows" class="section level1">
+<h1>Counts of Mutations in 100 bp windows</h1>
+<p>Note this new version: referencing according to Susan data integrataion We select a subset of lineages <code>to_extract</code>:</p>
+<pre class="r"><code>to_extract&lt;-c(&quot;B.1.177&quot;, &quot;B.1.5&quot;, &quot;D.2&quot;, &quot;A.1&quot;,  &quot;B.1.1.7&quot;, &quot;B.1.351&quot;, &quot;P.1&quot;)</code></pre>
+<p>AS check we extract sets of genomes mayching the two time periods of Angela’s original parse we keep wins having up to 1 mutation.</p>
+<div id="for-period-1" class="section level2">
+<h2>for period 1</h2>
+<pre class="r"><code>data100 &lt;- mutations_annotated %&gt;%
+  filter(species==&quot;Human&quot;) %&gt;%
+  filter(date &lt; &quot;2020-04-01&quot;) %&gt;%
+  filter(pangolin_lineage %in% to_extract)  %&gt;% # update
+  group_by(pangolin_lineage, gene, gene_bin, window_start, position, variant_base, type, aa_change) %&gt;%
+  summarise(genomes_mutated=n()) %&gt;% # Number of genomes mutated pr single mutation
+  filter(genomes_mutated &gt;= 1) %&gt;% # KEEP singletons 
+  group_by(pangolin_lineage, gene, gene_bin, type) %&gt;% 
+  summarise(unique_mutations = n(), 
+            max_genomes_mutated=max(genomes_mutated),
+            window_start = mean(window_start)) # Count number of sites mutated pr window</code></pre>
+<pre><code>`summarise()` regrouping output by &#39;pangolin_lineage&#39;, &#39;gene&#39;, &#39;gene_bin&#39;, &#39;window_start&#39;, &#39;position&#39;, &#39;variant_base&#39;, &#39;type&#39; (override with `.groups` argument)</code></pre>
+<pre><code>`summarise()` regrouping output by &#39;pangolin_lineage&#39;, &#39;gene&#39;, &#39;gene_bin&#39; (override with `.groups` argument)</code></pre>
+<pre class="r"><code>data100 &lt;- data100 %&gt;%  
+  mutate(type=factor(type)) %&gt;%
+  mutate(type = fct_recode(type,&quot;Synonymous substitutions&quot;=&quot;S&quot;, &quot;Nonsynonymous substitutions&quot;=&quot;N&quot;)) %&gt;%
+  mutate(type = fct_relevel(type, &quot;Synonymous substitutions&quot;))</code></pre>
+<p>Check that we have the lineages we wanted to extract</p>
+<pre class="r"><code>dim(data100)</code></pre>
+<pre><code>[1] 28  7</code></pre>
+<pre class="r"><code>unique(data100$pangolin_lineage) %in% to_extract</code></pre>
+<pre><code>[1] TRUE TRUE</code></pre>
+<div id="overview-of-the-counts-for-extracted-lineages" class="section level3">
+<h3>Overview of the counts for extracted lineages</h3>
+<pre class="r"><code>ggplot(data100, aes(x=window_start, y=unique_mutations, size=max_genomes_mutated, color=type)) + 
+  geom_point() +
+  ylim(c(0,NA)) +
+  xlim(c(0,NA)) +
+  xlab(&quot;Genome position&quot;) +
+  ylab(&quot;Number of unique mutations in 100bp&quot;) +
+  scale_color_aaas(name=&quot;&quot;) +
+  scale_size(&quot;Max genomes mutated&quot;, range=c(1,5)) +
+  facet_wrap(~ pangolin_lineage, ncol = 1, scales = &quot;free_y&quot;)+
+  theme(legend.position = &quot;none&quot;)+
+  # theme(legend.position = c(0.5,1),legend.justification = c(0.5,1))+
+  # theme(legend.box.background = element_rect(fill=&quot;#F0F0F0&quot;)) +
+  NULL</code></pre>
+<p><img src="figure/S0_creating_data_bywindows_lineages.Rmd/unnamed-chunk-12-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="save-mutations-as-rds-object" class="section level3">
+<h3>save mutations as RDS object</h3>
+<pre class="r"><code>saveRDS(data100, &quot;output/data_100pb_pangolin_period1.rds&quot;)</code></pre>
+</div>
+</div>
+<div id="for-period-2" class="section level2">
+<h2>for period 2</h2>
+<pre class="r"><code>data100 &lt;- mutations_annotated %&gt;%
+  filter(species==&quot;Human&quot;) %&gt;%
+  filter(date &gt;= &quot;2020-04-01&quot;) %&gt;%
+  filter(date &lt; &quot;2020-12-31&quot;) %&gt;%
+  filter(pangolin_lineage %in% to_extract)  %&gt;% # update
+  group_by(pangolin_lineage, gene, gene_bin, window_start, position, variant_base,type, aa_change) %&gt;%
+  summarise(genomes_mutated=n()) %&gt;% # Number of genomes mutated pr single mutation
+  filter(genomes_mutated &gt; 1) %&gt;% # IGNORE singletons 
+  group_by(pangolin_lineage, gene, gene_bin, type) %&gt;% 
+  summarise(unique_mutations = n(), 
+            max_genomes_mutated=max(genomes_mutated),
+            window_start = mean(window_start)) # Count number of sites mutated pr window</code></pre>
+<pre><code>`summarise()` regrouping output by &#39;pangolin_lineage&#39;, &#39;gene&#39;, &#39;gene_bin&#39;, &#39;window_start&#39;, &#39;position&#39;, &#39;variant_base&#39;, &#39;type&#39; (override with `.groups` argument)</code></pre>
+<pre><code>`summarise()` regrouping output by &#39;pangolin_lineage&#39;, &#39;gene&#39;, &#39;gene_bin&#39; (override with `.groups` argument)</code></pre>
+<pre class="r"><code>data100 &lt;- data100 %&gt;%  
+  mutate(type=factor(type)) %&gt;%
+  mutate(type = fct_recode(type,&quot;Synonymous substitutions&quot;=&quot;S&quot;, &quot;Nonsynonymous substitutions&quot;=&quot;N&quot;)) %&gt;%
+  mutate(type = fct_relevel(type, &quot;Synonymous substitutions&quot;))
+
+ggplot(data100, aes(x=window_start, y=unique_mutations, size=max_genomes_mutated, color=type)) + 
+  geom_point() +
+  ylim(c(0,NA)) +
+  xlim(c(0,NA)) +
+  xlab(&quot;Genome position&quot;) +
+  ylab(&quot;Number of unique mutations in 100bp&quot;) +
+  scale_color_aaas(name=&quot;&quot;) +
+  scale_size(&quot;Max genomes mutated&quot;, range=c(1,5)) +
+  facet_wrap(~ pangolin_lineage, ncol = 1, scales = &quot;free_y&quot;)+
+  # theme(legend.position = c(0.5,1),legend.justification = c(0.5,1))+
+  # theme(legend.box.background = element_rect(fill=&quot;#F0F0F0&quot;)) +
+  NULL</code></pre>
+<p><img src="figure/S0_creating_data_bywindows_lineages.Rmd/unnamed-chunk-14-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>unique(data100$pangolin_lineage)</code></pre>
+<pre><code>[1] &quot;A.1&quot;     &quot;B.1.1.7&quot; &quot;B.1.177&quot; &quot;B.1.351&quot; &quot;D.2&quot;     &quot;P.1&quot;    </code></pre>
+<pre class="r"><code>table(data100$pangolin_lineage)</code></pre>
+<pre><code>
+    A.1 B.1.1.7 B.1.177 B.1.351     D.2     P.1 
+      9     124     136      42      45      21 </code></pre>
+<div id="save-mutations-as-rds-object-1" class="section level3">
+<h3>save mutations as RDS object</h3>
+<pre class="r"><code>saveRDS(data100, &quot;output/data_100pb_pangolin_period2.rds&quot;)</code></pre>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span> Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.0.2 (2020-06-22)
+Platform: x86_64-apple-darwin17.0 (64-bit)
+Running under: macOS Catalina 10.15.7
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/4.0/Resources/lib/libRblas.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/4.0/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] ggrepel_0.9.1   ggsci_2.9       lubridate_1.7.9 cowplot_1.1.0  
+ [5] forcats_0.5.0   stringr_1.4.0   dplyr_1.0.2     purrr_0.3.4    
+ [9] readr_1.3.1     tidyr_1.1.1     tibble_3.0.3    ggplot2_3.3.2  
+[13] tidyverse_1.3.0
+
+loaded via a namespace (and not attached):
+ [1] tidyselect_1.1.0 xfun_0.16        haven_2.3.1      colorspace_1.4-1
+ [5] vctrs_0.3.2      generics_0.0.2   htmltools_0.5.0  yaml_2.2.1      
+ [9] blob_1.2.1       rlang_0.4.7      later_1.1.0.1    pillar_1.4.6    
+[13] withr_2.2.0      glue_1.4.1       DBI_1.1.0        dbplyr_1.4.4    
+[17] modelr_0.1.8     readxl_1.3.1     lifecycle_0.2.0  munsell_0.5.0   
+[21] gtable_0.3.0     workflowr_1.6.2  cellranger_1.1.0 rvest_0.3.6     
+[25] evaluate_0.14    labeling_0.3     knitr_1.29       httpuv_1.5.4    
+[29] fansi_0.4.1      highr_0.8        broom_0.7.0      Rcpp_1.0.5      
+[33] promises_1.1.1   backports_1.1.9  scales_1.1.1     jsonlite_1.7.1  
+[37] farver_2.0.3     fs_1.5.0         hms_0.5.3        digest_0.6.25   
+[41] stringi_1.4.6    rprojroot_2.0.2  grid_4.0.2       cli_2.0.2       
+[45] tools_4.0.2      magrittr_1.5     crayon_1.3.4     pkgconfig_2.0.3 
+[49] ellipsis_0.3.1   xml2_1.3.2       reprex_0.3.0     assertthat_0.2.1
+[53] rmarkdown_2.3    httr_1.4.2       rstudioapi_0.11  R6_2.4.1        
+[57] git2r_0.27.1     compiler_4.0.2  </code></pre>
+</div>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+http://docs.mathjax.org/en/latest/configuration.html.  This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

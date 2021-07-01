@@ -1,0 +1,2567 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Palle Villesen" />
+
+
+<title>Working with gisaid data (snpeff aka ‘Palles pipeline’)</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/master/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.tab('show');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-sm-12 col-md-4 col-lg-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-sm-12 col-md-8 col-lg-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">sars-cov2-gisaid</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Working with gisaid data (snpeff aka ‘Palles pipeline’)</h1>
+<h4 class="author">Palle Villesen</h4>
+<h4 class="date">Last update: 2021-04-08 13:35:55</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span> workflowr <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> </a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2021-04-08
+</p>
+<p>
+<strong>Checks:</strong> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 6 <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> 1
+</p>
+<p>
+<strong>Knit directory:</strong> <code>sars-cov2-gisaid/</code> <span class="glyphicon glyphicon-question-sign" aria-hidden="true" title="This is the local directory in which the code in this file was executed."> </span>
+</p>
+<p>
+This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis was created with <a
+  href="https://github.com/jdblischak/workflowr">workflowr</a> (version 1.6.2). The <em>Checks</em> tab describes the reproducibility checks that were applied when the results were created. The <em>Past versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguncommittedchanges"> <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> <strong>R Markdown file:</strong> uncommitted changes </a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguncommittedchanges" class="panel-collapse collapse">
+<div class="panel-body">
+<p>The R Markdown is untracked by Git. To know which version of the R Markdown file created these results, you’ll want to first commit it to the Git repo. If you’re still working on the analysis, you can ignore this warning. When you’re finished, you can run <code>wflow_publish</code> to commit the R Markdown file and build the HTML.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the global environment can affect the analysis in your R Markdown file in unknown ways. For reproduciblity it’s best to always run the code in an empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20210408code"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Seed:</strong> <code>set.seed(20210408)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20210408code" class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20210408)</code> was run prior to running the code in the R Markdown file. Setting a seed ensures that any results that rely on randomness, e.g. subsampling or permutations, are reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Session information:</strong> recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be confident that you successfully produced the results during this run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrong790cc80"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> 790cc80 </a>
+</p>
+</div>
+<div id="strongRepositoryversionstrong790cc80" class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version 790cc80. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    data/.DS_Store
+
+Untracked files:
+    Untracked:  analysis/1_working_with_the_data.snpeff.v1.rmd
+    Untracked:  data/2021-03-05/
+
+Unstaged changes:
+    Modified:   data/README.md
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not included in this status report because it is ok for generated content to have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+<p>
+There are no past versions. Publish this analysis with <code>wflow_publish()</code> to start tracking its development.
+</p>
+<hr>
+</div>
+</div>
+</div>
+<pre class="r"><code>data_path &lt;- &quot;data/2021-03-05/&quot;</code></pre>
+<div id="using-data-version-data2021-03-05" class="section level1">
+<h1>Using data version: data/2021-03-05/</h1>
+</div>
+<div id="init" class="section level1">
+<h1>Init</h1>
+<pre class="r"><code>library(tidyverse)
+library(cowplot)  # For theme
+library(lubridate)
+library(ggsci)
+library(ggrepel)
+
+text_base_size   &lt;- 8   # in pt
+ggplot_text_size &lt;- text_base_size / ggplot2::.pt
+# Now use: geom_text(..., size = ggplot_text_size)
+theme_set(theme_cowplot(font_size = text_base_size, 
+                        rel_small = 1, rel_tiny = 1, 
+                        rel_large = 1))
+
+mutations &lt;- read_rds(paste(data_path, &quot;/mutations_snpeff_annotated_tidy.rds&quot;, sep=&quot;&quot;))
+metadata  &lt;- read_rds(paste(data_path, &quot;/metadata_snpeff_tidy.rds&quot;,sep=&quot;&quot;)) 
+
+x &lt;- Sys.setlocale(locale = &quot;English&quot;)
+rm(x)</code></pre>
+</div>
+<div id="data-structure" class="section level1">
+<h1>Data structure</h1>
+<pre class="r"><code>x &lt;- head(mutations, n = 1) %&gt;% t()
+tibble(variable = rownames(x), value=x[,1]) %&gt;% 
+  knitr::kable()</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">variable</th>
+<th align="left">value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">id</td>
+<td align="left">1000000</td>
+</tr>
+<tr class="even">
+<td align="left">CHROM</td>
+<td align="left">NC_045512</td>
+</tr>
+<tr class="odd">
+<td align="left">position</td>
+<td align="left">913</td>
+</tr>
+<tr class="even">
+<td align="left">ref_base</td>
+<td align="left">C</td>
+</tr>
+<tr class="odd">
+<td align="left">variant_base</td>
+<td align="left">T</td>
+</tr>
+<tr class="even">
+<td align="left">gene</td>
+<td align="left">ORF1ab_pp1a</td>
+</tr>
+<tr class="odd">
+<td align="left">biotype</td>
+<td align="left">protein_coding</td>
+</tr>
+<tr class="even">
+<td align="left">impact</td>
+<td align="left">LOW</td>
+</tr>
+<tr class="odd">
+<td align="left">effect</td>
+<td align="left">synonymous_variant</td>
+</tr>
+<tr class="even">
+<td align="left">hgvs_c</td>
+<td align="left">c.648C&gt;T</td>
+</tr>
+<tr class="odd">
+<td align="left">hgvs_p</td>
+<td align="left">p.Ser216Ser</td>
+</tr>
+<tr class="even">
+<td align="left">aa_position</td>
+<td align="left">216</td>
+</tr>
+<tr class="odd">
+<td align="left">type</td>
+<td align="left">S</td>
+</tr>
+<tr class="even">
+<td align="left">aa_change</td>
+<td align="left">S216S</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>x &lt;- head(metadata, n = 1) %&gt;% t()
+tibble(variable = rownames(x), value=x[,1]) %&gt;% 
+  knitr::kable()</code></pre>
+<table>
+<colgroup>
+<col width="19%" />
+<col width="80%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">variable</th>
+<th align="left">value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">id</td>
+<td align="left">426900</td>
+</tr>
+<tr class="even">
+<td align="left">strain</td>
+<td align="left">Australia/NT12/2020</td>
+</tr>
+<tr class="odd">
+<td align="left">virus</td>
+<td align="left">ncov</td>
+</tr>
+<tr class="even">
+<td align="left">gisaid_epi_isl</td>
+<td align="left">EPI_ISL_426900</td>
+</tr>
+<tr class="odd">
+<td align="left">genbank_accession</td>
+<td align="left">?</td>
+</tr>
+<tr class="even">
+<td align="left">date</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">region</td>
+<td align="left">Oceania</td>
+</tr>
+<tr class="even">
+<td align="left">country</td>
+<td align="left">Australia</td>
+</tr>
+<tr class="odd">
+<td align="left">division</td>
+<td align="left">Northern Territory</td>
+</tr>
+<tr class="even">
+<td align="left">location</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">region_exposure</td>
+<td align="left">Oceania</td>
+</tr>
+<tr class="even">
+<td align="left">country_exposure</td>
+<td align="left">Australia</td>
+</tr>
+<tr class="odd">
+<td align="left">division_exposure</td>
+<td align="left">Northern Territory</td>
+</tr>
+<tr class="even">
+<td align="left">segment</td>
+<td align="left">genome</td>
+</tr>
+<tr class="odd">
+<td align="left">length</td>
+<td align="left">29862</td>
+</tr>
+<tr class="even">
+<td align="left">host</td>
+<td align="left">Human</td>
+</tr>
+<tr class="odd">
+<td align="left">age</td>
+<td align="left">?</td>
+</tr>
+<tr class="even">
+<td align="left">sex</td>
+<td align="left">?</td>
+</tr>
+<tr class="odd">
+<td align="left">Nextstrain_clade</td>
+<td align="left">20A</td>
+</tr>
+<tr class="even">
+<td align="left">pangolin_lineage</td>
+<td align="left">B.1</td>
+</tr>
+<tr class="odd">
+<td align="left">GISAID_clade</td>
+<td align="left">G</td>
+</tr>
+<tr class="even">
+<td align="left">originating_lab</td>
+<td align="left">Royal Darwin Hospital Pathology</td>
+</tr>
+<tr class="odd">
+<td align="left">submitting_lab</td>
+<td align="left">Microbiological Diagnostic Unit Public Health Laboratory and Victorian Infectious Diseases Reference Laboratory, Doherty Institute</td>
+</tr>
+<tr class="even">
+<td align="left">authors</td>
+<td align="left">Meumann et al</td>
+</tr>
+<tr class="odd">
+<td align="left">url</td>
+<td align="left"><a href="https://www.gisaid.org" class="uri">https://www.gisaid.org</a></td>
+</tr>
+<tr class="even">
+<td align="left">title</td>
+<td align="left">?</td>
+</tr>
+<tr class="odd">
+<td align="left">paper_url</td>
+<td align="left">?</td>
+</tr>
+<tr class="even">
+<td align="left">date_submitted</td>
+<td align="left">2020-04-17</td>
+</tr>
+<tr class="odd">
+<td align="left">purpose_of_sequencing</td>
+<td align="left">?</td>
+</tr>
+<tr class="even">
+<td align="left">species</td>
+<td align="left">Human</td>
+</tr>
+<tr class="odd">
+<td align="left">Virus name</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">Accession ID</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">Collection date</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">Location</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">Host</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">Additional location information</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">Gender</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">Patient age</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">Patient status</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">Passage</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">Specimen</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">Additional host information</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">Lineage</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">Clade</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">count_N</td>
+<td align="left">3</td>
+</tr>
+<tr class="even">
+<td align="left">count_S</td>
+<td align="left">2</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>rm(x)</code></pre>
+</div>
+<div id="overview-of-data" class="section level1">
+<h1>Overview of data</h1>
+<pre class="r"><code>pd &lt;- tibble() %&gt;%
+  bind_rows(tibble(&quot;Description&quot; = &quot;Genomes total&quot;, 
+                   &quot;n&quot; = metadata %&gt;% select(id) %&gt;% distinct() %&gt;% count() %&gt;% pull(n) )) %&gt;%
+  bind_rows(tibble(&quot;Description&quot; = &quot;Mutations in these genomes&quot;, 
+                   &quot;n&quot; = mutations %&gt;% distinct(id, position) %&gt;% count() %&gt;% pull(n))) %&gt;%
+  bind_rows(tibble(&quot;Description&quot; = &quot;Genomes with mutations in protein coding regions&quot;,
+                   &quot;n&quot; = mutations %&gt;% select(id) %&gt;% distinct() %&gt;% count() %&gt;% pull(n) )) %&gt;%
+  bind_rows(tibble(&quot;Description&quot; = &quot;Unique mutations total&quot;,
+                   &quot;n&quot; = mutations %&gt;% select(position, variant_base) %&gt;% distinct() %&gt;% count() %&gt;% pull(n) )) %&gt;%
+  bind_rows(tibble(&quot;Description&quot; = &quot;Unique positions mutated&quot;,
+                   &quot;n&quot; = mutations %&gt;% select(position) %&gt;% distinct() %&gt;% count() %&gt;% pull(n) )) %&gt;%
+  bind_rows(tibble(&quot;Description&quot; = &quot;Unique Synonymous mutations&quot;,
+                   &quot;n&quot; = mutations %&gt;% filter(type==&quot;S&quot;) %&gt;% select(position, variant_base) %&gt;% distinct() %&gt;% count() %&gt;% pull(n) )) %&gt;%
+  bind_rows(tibble(&quot;Description&quot; = &quot;Unique Nonsynonymous mutations&quot;,
+                   &quot;n&quot; = mutations %&gt;% filter(type==&quot;N&quot;) %&gt;% select(position, variant_base) %&gt;% distinct() %&gt;% count() %&gt;% pull(n) )) %&gt;%
+  bind_rows(tibble(&quot;Description&quot; = &quot;Sites with Synonymous mutations&quot;,
+                   &quot;n&quot; = mutations %&gt;% filter(type==&quot;S&quot;) %&gt;% select(position) %&gt;% distinct() %&gt;% count() %&gt;% pull(n) )) %&gt;%
+  bind_rows(tibble(&quot;Description&quot; = &quot;Sites with Nonsynonymous mutations&quot;,
+                   &quot;n&quot; = mutations %&gt;% filter(type==&quot;N&quot;) %&gt;% select(position) %&gt;% distinct() %&gt;% count() %&gt;% pull(n) )) %&gt;%
+  bind_rows(tibble(&quot;Description&quot; = &quot;Human genomes&quot;,
+                   &quot;n&quot; = metadata %&gt;% filter(species==&quot;Human&quot;) %&gt;% count() %&gt;% pull(n) )) %&gt;%
+  bind_rows(tibble(&quot;Description&quot; = &quot;Mink genomes&quot;,
+                   &quot;n&quot; = metadata %&gt;% filter(species==&quot;Mink&quot;) %&gt;% count() %&gt;% pull(n) )) %&gt;%
+  bind_rows(tibble(&quot;Description&quot; = &quot;Other genomes&quot;,
+                   &quot;n&quot; = metadata %&gt;% filter(!species %in% c(&quot;Human&quot;,&quot;Mink&quot;)) %&gt;% count() %&gt;% pull(n) )) %&gt;%
+  
+  bind_rows(tibble(&quot;Description&quot; = &quot;Samples with Patient status&quot;,
+                   &quot;n&quot; = metadata %&gt;% filter(!is.na(`Patient status`)) %&gt;% count() %&gt;% pull(n) )) %&gt;%
+  {.}
+
+knitr::kable(pd)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Description</th>
+<th align="right">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Genomes total</td>
+<td align="right">521317</td>
+</tr>
+<tr class="even">
+<td align="left">Mutations in these genomes</td>
+<td align="right">9323249</td>
+</tr>
+<tr class="odd">
+<td align="left">Genomes with mutations in protein coding regions</td>
+<td align="right">520765</td>
+</tr>
+<tr class="even">
+<td align="left">Unique mutations total</td>
+<td align="right">43426</td>
+</tr>
+<tr class="odd">
+<td align="left">Unique positions mutated</td>
+<td align="right">24826</td>
+</tr>
+<tr class="even">
+<td align="left">Unique Synonymous mutations</td>
+<td align="right">14604</td>
+</tr>
+<tr class="odd">
+<td align="left">Unique Nonsynonymous mutations</td>
+<td align="right">28827</td>
+</tr>
+<tr class="even">
+<td align="left">Sites with Synonymous mutations</td>
+<td align="right">9911</td>
+</tr>
+<tr class="odd">
+<td align="left">Sites with Nonsynonymous mutations</td>
+<td align="right">17788</td>
+</tr>
+<tr class="even">
+<td align="left">Human genomes</td>
+<td align="right">520589</td>
+</tr>
+<tr class="odd">
+<td align="left">Mink genomes</td>
+<td align="right">728</td>
+</tr>
+<tr class="even">
+<td align="left">Other genomes</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Samples with Patient status</td>
+<td align="right">27085</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="examples" class="section level1">
+<h1>Examples</h1>
+<div id="patient-metadata" class="section level2">
+<h2>Patient metadata</h2>
+<div id="date-of-collection" class="section level3">
+<h3>Date of collection</h3>
+<pre class="r"><code>metadata %&gt;% 
+  filter(species==&quot;Human&quot;) %&gt;%
+  filter(!is.na(`Patient status`)) %&gt;%
+  mutate(date2=floor_date(ymd(`Collection date`),&quot;month&quot;)) %&gt;%
+  count(date2) %&gt;% 
+  knitr::kable()</code></pre>
+<pre><code>Warning: Problem with `mutate()` input `date2`.
+ℹ  8726 failed to parse.
+ℹ Input `date2` is `floor_date(ymd(`Collection date`), &quot;month&quot;)`.</code></pre>
+<pre><code>Warning: 8726 failed to parse.</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">date2</th>
+<th align="right">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">2019-12-01</td>
+<td align="right">7</td>
+</tr>
+<tr class="even">
+<td align="left">2020-01-01</td>
+<td align="right">168</td>
+</tr>
+<tr class="odd">
+<td align="left">2020-02-01</td>
+<td align="right">451</td>
+</tr>
+<tr class="even">
+<td align="left">2020-03-01</td>
+<td align="right">2486</td>
+</tr>
+<tr class="odd">
+<td align="left">2020-04-01</td>
+<td align="right">2125</td>
+</tr>
+<tr class="even">
+<td align="left">2020-05-01</td>
+<td align="right">1246</td>
+</tr>
+<tr class="odd">
+<td align="left">2020-06-01</td>
+<td align="right">1160</td>
+</tr>
+<tr class="even">
+<td align="left">2020-07-01</td>
+<td align="right">1509</td>
+</tr>
+<tr class="odd">
+<td align="left">2020-08-01</td>
+<td align="right">882</td>
+</tr>
+<tr class="even">
+<td align="left">2020-09-01</td>
+<td align="right">709</td>
+</tr>
+<tr class="odd">
+<td align="left">2020-10-01</td>
+<td align="right">695</td>
+</tr>
+<tr class="even">
+<td align="left">2020-11-01</td>
+<td align="right">627</td>
+</tr>
+<tr class="odd">
+<td align="left">2020-12-01</td>
+<td align="right">1492</td>
+</tr>
+<tr class="even">
+<td align="left">2021-01-01</td>
+<td align="right">3163</td>
+</tr>
+<tr class="odd">
+<td align="left">2021-02-01</td>
+<td align="right">1628</td>
+</tr>
+<tr class="even">
+<td align="left">NA</td>
+<td align="right">8726</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>metadata %&gt;% 
+  filter(species==&quot;Human&quot;) %&gt;%
+  filter(!is.na(`Patient status`)) %&gt;%
+  mutate(date2=str_sub(`Collection date`, start = 1, end = 7)) %&gt;%
+  count(date2) %&gt;% 
+  knitr::kable()</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">date2</th>
+<th align="right">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">2019-12</td>
+<td align="right">7</td>
+</tr>
+<tr class="even">
+<td align="left">2020</td>
+<td align="right">141</td>
+</tr>
+<tr class="odd">
+<td align="left">2020-01</td>
+<td align="right">168</td>
+</tr>
+<tr class="even">
+<td align="left">2020-02</td>
+<td align="right">477</td>
+</tr>
+<tr class="odd">
+<td align="left">2020-03</td>
+<td align="right">2811</td>
+</tr>
+<tr class="even">
+<td align="left">2020-04</td>
+<td align="right">4574</td>
+</tr>
+<tr class="odd">
+<td align="left">2020-05</td>
+<td align="right">1579</td>
+</tr>
+<tr class="even">
+<td align="left">2020-06</td>
+<td align="right">1471</td>
+</tr>
+<tr class="odd">
+<td align="left">2020-07</td>
+<td align="right">3368</td>
+</tr>
+<tr class="even">
+<td align="left">2020-08</td>
+<td align="right">3581</td>
+</tr>
+<tr class="odd">
+<td align="left">2020-09</td>
+<td align="right">1099</td>
+</tr>
+<tr class="even">
+<td align="left">2020-10</td>
+<td align="right">698</td>
+</tr>
+<tr class="odd">
+<td align="left">2020-11</td>
+<td align="right">627</td>
+</tr>
+<tr class="even">
+<td align="left">2020-12</td>
+<td align="right">1492</td>
+</tr>
+<tr class="odd">
+<td align="left">2021</td>
+<td align="right">125</td>
+</tr>
+<tr class="even">
+<td align="left">2021-01</td>
+<td align="right">3227</td>
+</tr>
+<tr class="odd">
+<td align="left">2021-02</td>
+<td align="right">1629</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="region-and-month" class="section level3">
+<h3>Region and month</h3>
+<pre class="r"><code>metadata %&gt;% 
+  filter(species==&quot;Human&quot;) %&gt;%
+  filter(!is.na(`Patient status`)) %&gt;%
+  mutate(date2=floor_date(date,&quot;month&quot;)) %&gt;%
+  count(date2,region) %&gt;% 
+  pivot_wider(names_from = region, values_from=n, values_fill=0 ) %&gt;%
+  knitr::kable()</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">date2</th>
+<th align="right">Asia</th>
+<th align="right">Europe</th>
+<th align="right">Oceania</th>
+<th align="right">Africa</th>
+<th align="right">North America</th>
+<th align="right">South America</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">2019-12-01</td>
+<td align="right">7</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">2020-01-01</td>
+<td align="right">154</td>
+<td align="right">10</td>
+<td align="right">4</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">2020-02-01</td>
+<td align="right">332</td>
+<td align="right">98</td>
+<td align="right">7</td>
+<td align="right">1</td>
+<td align="right">9</td>
+<td align="right">4</td>
+</tr>
+<tr class="even">
+<td align="left">2020-03-01</td>
+<td align="right">823</td>
+<td align="right">990</td>
+<td align="right">6</td>
+<td align="right">52</td>
+<td align="right">352</td>
+<td align="right">265</td>
+</tr>
+<tr class="odd">
+<td align="left">2020-04-01</td>
+<td align="right">859</td>
+<td align="right">488</td>
+<td align="right">0</td>
+<td align="right">45</td>
+<td align="right">377</td>
+<td align="right">356</td>
+</tr>
+<tr class="even">
+<td align="left">2020-05-01</td>
+<td align="right">661</td>
+<td align="right">260</td>
+<td align="right">0</td>
+<td align="right">25</td>
+<td align="right">81</td>
+<td align="right">219</td>
+</tr>
+<tr class="odd">
+<td align="left">2020-06-01</td>
+<td align="right">643</td>
+<td align="right">153</td>
+<td align="right">0</td>
+<td align="right">110</td>
+<td align="right">146</td>
+<td align="right">108</td>
+</tr>
+<tr class="even">
+<td align="left">2020-07-01</td>
+<td align="right">514</td>
+<td align="right">112</td>
+<td align="right">0</td>
+<td align="right">630</td>
+<td align="right">155</td>
+<td align="right">98</td>
+</tr>
+<tr class="odd">
+<td align="left">2020-08-01</td>
+<td align="right">214</td>
+<td align="right">263</td>
+<td align="right">0</td>
+<td align="right">177</td>
+<td align="right">93</td>
+<td align="right">135</td>
+</tr>
+<tr class="even">
+<td align="left">2020-09-01</td>
+<td align="right">185</td>
+<td align="right">258</td>
+<td align="right">0</td>
+<td align="right">207</td>
+<td align="right">34</td>
+<td align="right">25</td>
+</tr>
+<tr class="odd">
+<td align="left">2020-10-01</td>
+<td align="right">94</td>
+<td align="right">337</td>
+<td align="right">0</td>
+<td align="right">186</td>
+<td align="right">39</td>
+<td align="right">40</td>
+</tr>
+<tr class="even">
+<td align="left">2020-11-01</td>
+<td align="right">220</td>
+<td align="right">275</td>
+<td align="right">0</td>
+<td align="right">79</td>
+<td align="right">27</td>
+<td align="right">25</td>
+</tr>
+<tr class="odd">
+<td align="left">2020-12-01</td>
+<td align="right">291</td>
+<td align="right">842</td>
+<td align="right">0</td>
+<td align="right">12</td>
+<td align="right">243</td>
+<td align="right">104</td>
+</tr>
+<tr class="even">
+<td align="left">2021-01-01</td>
+<td align="right">134</td>
+<td align="right">2588</td>
+<td align="right">1</td>
+<td align="right">85</td>
+<td align="right">103</td>
+<td align="right">252</td>
+</tr>
+<tr class="odd">
+<td align="left">2021-02-01</td>
+<td align="right">27</td>
+<td align="right">1517</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">28</td>
+<td align="right">56</td>
+</tr>
+<tr class="even">
+<td align="left">NA</td>
+<td align="right">8485</td>
+<td align="right">181</td>
+<td align="right">0</td>
+<td align="right">9</td>
+<td align="right">47</td>
+<td align="right">2</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="using-bins-of-mutations-as-date-proxy" class="section level3">
+<h3>Using bins of mutations as date proxy</h3>
+<pre class="r"><code>metadata %&gt;% 
+  filter(species==&quot;Human&quot;) %&gt;%
+  filter(!is.na(`Patient status`)) %&gt;%
+  mutate(mutation_bin=cut(count_S+count_N, breaks = seq(0,100,by = 5))) %&gt;%
+  mutate(date2=floor_date(date,&quot;month&quot;)) %&gt;%
+  count(mutation_bin,date2) %&gt;% 
+  pivot_wider(names_from = mutation_bin, values_from=n, values_fill=0 ) %&gt;%
+  knitr::kable()</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">date2</th>
+<th align="right">(0,5]</th>
+<th align="right">(5,10]</th>
+<th align="right">(10,15]</th>
+<th align="right">(15,20]</th>
+<th align="right">(20,25]</th>
+<th align="right">(25,30]</th>
+<th align="right">(30,35]</th>
+<th align="right">(35,40]</th>
+<th align="right">NA</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">2019-12-01</td>
+<td align="right">5</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">2020-01-01</td>
+<td align="right">126</td>
+<td align="right">11</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">30</td>
+</tr>
+<tr class="odd">
+<td align="left">2020-02-01</td>
+<td align="right">351</td>
+<td align="right">69</td>
+<td align="right">5</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">26</td>
+</tr>
+<tr class="even">
+<td align="left">2020-03-01</td>
+<td align="right">897</td>
+<td align="right">1462</td>
+<td align="right">88</td>
+<td align="right">10</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">30</td>
+</tr>
+<tr class="odd">
+<td align="left">2020-04-01</td>
+<td align="right">298</td>
+<td align="right">1623</td>
+<td align="right">202</td>
+<td align="right">2</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">2020-05-01</td>
+<td align="right">122</td>
+<td align="right">774</td>
+<td align="right">336</td>
+<td align="right">12</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">2020-06-01</td>
+<td align="right">71</td>
+<td align="right">550</td>
+<td align="right">487</td>
+<td align="right">49</td>
+<td align="right">1</td>
+<td align="right">2</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">2020-07-01</td>
+<td align="right">27</td>
+<td align="right">532</td>
+<td align="right">842</td>
+<td align="right">104</td>
+<td align="right">4</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">2020-08-01</td>
+<td align="right">4</td>
+<td align="right">158</td>
+<td align="right">516</td>
+<td align="right">179</td>
+<td align="right">22</td>
+<td align="right">2</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">2020-09-01</td>
+<td align="right">3</td>
+<td align="right">64</td>
+<td align="right">336</td>
+<td align="right">246</td>
+<td align="right">50</td>
+<td align="right">10</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">2020-10-01</td>
+<td align="right">2</td>
+<td align="right">30</td>
+<td align="right">230</td>
+<td align="right">293</td>
+<td align="right">133</td>
+<td align="right">8</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">2020-11-01</td>
+<td align="right">3</td>
+<td align="right">16</td>
+<td align="right">165</td>
+<td align="right">325</td>
+<td align="right">98</td>
+<td align="right">14</td>
+<td align="right">5</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">2021-01-01</td>
+<td align="right">1</td>
+<td align="right">4</td>
+<td align="right">108</td>
+<td align="right">483</td>
+<td align="right">909</td>
+<td align="right">1065</td>
+<td align="right">572</td>
+<td align="right">21</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">2021-02-01</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">13</td>
+<td align="right">175</td>
+<td align="right">301</td>
+<td align="right">550</td>
+<td align="right">560</td>
+<td align="right">27</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">NA</td>
+<td align="right">185</td>
+<td align="right">2777</td>
+<td align="right">4305</td>
+<td align="right">1224</td>
+<td align="right">108</td>
+<td align="right">83</td>
+<td align="right">39</td>
+<td align="right">1</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">2020-12-01</td>
+<td align="right">0</td>
+<td align="right">13</td>
+<td align="right">184</td>
+<td align="right">647</td>
+<td align="right">392</td>
+<td align="right">191</td>
+<td align="right">63</td>
+<td align="right">2</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="tagging-patient-genomes-with-d614g-mutation" class="section level3">
+<h3>Tagging patient genomes with D614G mutation</h3>
+<p>Simple example of coding metadata with a specific mutation</p>
+<pre class="r"><code>tmp1 &lt;- mutations %&gt;%
+  filter(gene==&quot;S&quot; &amp; aa_change==&quot;D614G&quot;)
+
+pd &lt;- metadata %&gt;%
+  filter(species==&quot;Human&quot;) %&gt;%
+  filter(!is.na(`Patient status`)) %&gt;%
+  mutate(mutation = ifelse(id %in% tmp1$id, &quot;Mutated&quot;, &quot;No mutation&quot;))
+
+pd %&gt;%
+  count(mutation) %&gt;%
+  knitr::kable()</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">mutation</th>
+<th align="right">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Mutated</td>
+<td align="right">24659</td>
+</tr>
+<tr class="even">
+<td align="left">No mutation</td>
+<td align="right">2415</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="tagging-all-genomes-with-n501y-mutation" class="section level3">
+<h3>Tagging all genomes with N501Y mutation</h3>
+<p>Simple example of coding metadata with a specific mutation</p>
+<pre class="r"><code>tmp1 &lt;- mutations %&gt;%
+  filter(hgvs_p==&quot;p.Asn501Tyr&quot;)
+
+pd &lt;- metadata %&gt;%
+  filter(species==&quot;Human&quot;) %&gt;%
+  mutate(mutation = ifelse(id %in% tmp1$id, &quot;Mutated&quot;, &quot;No mutation&quot;))
+
+pd %&gt;%
+  count(mutation) %&gt;%
+  knitr::kable()</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">mutation</th>
+<th align="right">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Mutated</td>
+<td align="right">109154</td>
+</tr>
+<tr class="even">
+<td align="left">No mutation</td>
+<td align="right">411435</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="gender-example" class="section level3">
+<h3>Gender example</h3>
+<p>Beware! This is the raw patient metadata - they need to be cleaned!</p>
+<pre class="r"><code>tmp1 &lt;- mutations %&gt;%
+  filter(aa_change==&quot;N501Y&quot;)
+
+pd &lt;- metadata %&gt;%
+  filter(species==&quot;Human&quot;) %&gt;%
+  mutate(mutation = ifelse(id %in% tmp1$id, &quot;Has mutation&quot;, &quot;Wildtype&quot;))
+
+pd %&gt;%
+  group_by(`Gender`) %&gt;%
+  count(mutation) %&gt;%
+  knitr::kable()</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Gender</th>
+<th align="left">mutation</th>
+<th align="right">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Female</td>
+<td align="left">Has mutation</td>
+<td align="right">1265</td>
+</tr>
+<tr class="even">
+<td align="left">Female</td>
+<td align="left">Wildtype</td>
+<td align="right">6298</td>
+</tr>
+<tr class="odd">
+<td align="left">Male</td>
+<td align="left">Has mutation</td>
+<td align="right">1191</td>
+</tr>
+<tr class="even">
+<td align="left">Male</td>
+<td align="left">Wildtype</td>
+<td align="right">7734</td>
+</tr>
+<tr class="odd">
+<td align="left">Not reported to protect privacy</td>
+<td align="left">Wildtype</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">unknown</td>
+<td align="left">Has mutation</td>
+<td align="right">400</td>
+</tr>
+<tr class="odd">
+<td align="left">unknown</td>
+<td align="left">Wildtype</td>
+<td align="right">10185</td>
+</tr>
+<tr class="even">
+<td align="left">NA</td>
+<td align="left">Has mutation</td>
+<td align="right">106298</td>
+</tr>
+<tr class="odd">
+<td align="left">NA</td>
+<td align="left">Wildtype</td>
+<td align="right">387217</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>pd %&gt;%
+  mutate(Gender = str_to_lower(Gender)) %&gt;%
+  mutate(Gender = ifelse(Gender==&quot;woman&quot;, &quot;female&quot;, Gender)) %&gt;%
+  mutate(Gender = ifelse(Gender==&quot;unknown&quot;, &quot;unknown&quot;, Gender)) %&gt;%
+  group_by(region,Gender) %&gt;%
+  summarise(mutated = sum(mutation==&quot;Mutated&quot;),
+            not_mutated = sum(mutation!=&quot;Mutated&quot;)) %&gt;%
+  arrange(region, Gender) %&gt;%
+  knitr::kable()</code></pre>
+<pre><code>`summarise()` regrouping output by &#39;region&#39; (override with `.groups` argument)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">region</th>
+<th align="left">Gender</th>
+<th align="right">mutated</th>
+<th align="right">not_mutated</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Africa</td>
+<td align="left">female</td>
+<td align="right">0</td>
+<td align="right">906</td>
+</tr>
+<tr class="even">
+<td align="left">Africa</td>
+<td align="left">male</td>
+<td align="right">0</td>
+<td align="right">565</td>
+</tr>
+<tr class="odd">
+<td align="left">Africa</td>
+<td align="left">unknown</td>
+<td align="right">0</td>
+<td align="right">147</td>
+</tr>
+<tr class="even">
+<td align="left">Africa</td>
+<td align="left">NA</td>
+<td align="right">0</td>
+<td align="right">3503</td>
+</tr>
+<tr class="odd">
+<td align="left">Asia</td>
+<td align="left">female</td>
+<td align="right">0</td>
+<td align="right">1605</td>
+</tr>
+<tr class="even">
+<td align="left">Asia</td>
+<td align="left">male</td>
+<td align="right">0</td>
+<td align="right">3103</td>
+</tr>
+<tr class="odd">
+<td align="left">Asia</td>
+<td align="left">unknown</td>
+<td align="right">0</td>
+<td align="right">8935</td>
+</tr>
+<tr class="even">
+<td align="left">Asia</td>
+<td align="left">NA</td>
+<td align="right">0</td>
+<td align="right">21899</td>
+</tr>
+<tr class="odd">
+<td align="left">Europe</td>
+<td align="left">female</td>
+<td align="right">0</td>
+<td align="right">3762</td>
+</tr>
+<tr class="even">
+<td align="left">Europe</td>
+<td align="left">male</td>
+<td align="right">0</td>
+<td align="right">3701</td>
+</tr>
+<tr class="odd">
+<td align="left">Europe</td>
+<td align="left">unknown</td>
+<td align="right">0</td>
+<td align="right">909</td>
+</tr>
+<tr class="even">
+<td align="left">Europe</td>
+<td align="left">NA</td>
+<td align="right">0</td>
+<td align="right">329488</td>
+</tr>
+<tr class="odd">
+<td align="left">North America</td>
+<td align="left">female</td>
+<td align="right">0</td>
+<td align="right">674</td>
+</tr>
+<tr class="even">
+<td align="left">North America</td>
+<td align="left">male</td>
+<td align="right">0</td>
+<td align="right">917</td>
+</tr>
+<tr class="odd">
+<td align="left">North America</td>
+<td align="left">not reported to protect privacy</td>
+<td align="right">0</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">North America</td>
+<td align="left">unknown</td>
+<td align="right">0</td>
+<td align="right">142</td>
+</tr>
+<tr class="odd">
+<td align="left">North America</td>
+<td align="left">NA</td>
+<td align="right">0</td>
+<td align="right">120284</td>
+</tr>
+<tr class="even">
+<td align="left">Oceania</td>
+<td align="left">female</td>
+<td align="right">0</td>
+<td align="right">7</td>
+</tr>
+<tr class="odd">
+<td align="left">Oceania</td>
+<td align="left">male</td>
+<td align="right">0</td>
+<td align="right">11</td>
+</tr>
+<tr class="even">
+<td align="left">Oceania</td>
+<td align="left">NA</td>
+<td align="right">0</td>
+<td align="right">14438</td>
+</tr>
+<tr class="odd">
+<td align="left">South America</td>
+<td align="left">female</td>
+<td align="right">0</td>
+<td align="right">609</td>
+</tr>
+<tr class="even">
+<td align="left">South America</td>
+<td align="left">male</td>
+<td align="right">0</td>
+<td align="right">628</td>
+</tr>
+<tr class="odd">
+<td align="left">South America</td>
+<td align="left">unknown</td>
+<td align="right">0</td>
+<td align="right">452</td>
+</tr>
+<tr class="even">
+<td align="left">South America</td>
+<td align="left">NA</td>
+<td align="right">0</td>
+<td align="right">3903</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="gene-focus" class="section level2">
+<h2>Gene focus</h2>
+<div id="genomes-with-mutations-pr.-gene" class="section level3">
+<h3>Genomes with mutations pr. gene</h3>
+<pre class="r"><code>mutations %&gt;%
+  group_by(gene, type) %&gt;%
+  count() %&gt;%
+  knitr::kable()</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">gene</th>
+<th align="left">type</th>
+<th align="right">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">E</td>
+<td align="left">N</td>
+<td align="right">10035</td>
+</tr>
+<tr class="even">
+<td align="left">E</td>
+<td align="left">S</td>
+<td align="right">12537</td>
+</tr>
+<tr class="odd">
+<td align="left">M</td>
+<td align="left">N</td>
+<td align="right">24497</td>
+</tr>
+<tr class="even">
+<td align="left">M</td>
+<td align="left">S</td>
+<td align="right">193753</td>
+</tr>
+<tr class="odd">
+<td align="left">N</td>
+<td align="left">N</td>
+<td align="right">1269052</td>
+</tr>
+<tr class="even">
+<td align="left">N</td>
+<td align="left">S</td>
+<td align="right">330386</td>
+</tr>
+<tr class="odd">
+<td align="left">ORF10</td>
+<td align="left">N</td>
+<td align="right">106380</td>
+</tr>
+<tr class="even">
+<td align="left">ORF10</td>
+<td align="left">S</td>
+<td align="right">3975</td>
+</tr>
+<tr class="odd">
+<td align="left">ORF1ab_pp1a</td>
+<td align="left">N</td>
+<td align="right">1266064</td>
+</tr>
+<tr class="even">
+<td align="left">ORF1ab_pp1a</td>
+<td align="left">S</td>
+<td align="right">1587124</td>
+</tr>
+<tr class="odd">
+<td align="left">ORF1ab_pp1ab</td>
+<td align="left">N</td>
+<td align="right">2286539</td>
+</tr>
+<tr class="even">
+<td align="left">ORF1ab_pp1ab</td>
+<td align="left">S</td>
+<td align="right">2436193</td>
+</tr>
+<tr class="odd">
+<td align="left">ORF3a</td>
+<td align="left">N</td>
+<td align="right">321140</td>
+</tr>
+<tr class="even">
+<td align="left">ORF3a</td>
+<td align="left">S</td>
+<td align="right">52868</td>
+</tr>
+<tr class="odd">
+<td align="left">ORF6</td>
+<td align="left">N</td>
+<td align="right">9293</td>
+</tr>
+<tr class="even">
+<td align="left">ORF6</td>
+<td align="left">S</td>
+<td align="right">9557</td>
+</tr>
+<tr class="odd">
+<td align="left">ORF7a</td>
+<td align="left">N</td>
+<td align="right">30242</td>
+</tr>
+<tr class="even">
+<td align="left">ORF7a</td>
+<td align="left">S</td>
+<td align="right">15800</td>
+</tr>
+<tr class="odd">
+<td align="left">ORF7b</td>
+<td align="left">N</td>
+<td align="right">14421</td>
+</tr>
+<tr class="even">
+<td align="left">ORF7b</td>
+<td align="left">S</td>
+<td align="right">14370</td>
+</tr>
+<tr class="odd">
+<td align="left">ORF8</td>
+<td align="left">N</td>
+<td align="right">301835</td>
+</tr>
+<tr class="even">
+<td align="left">ORF8</td>
+<td align="left">S</td>
+<td align="right">90946</td>
+</tr>
+<tr class="odd">
+<td align="left">S</td>
+<td align="left">N</td>
+<td align="right">1585655</td>
+</tr>
+<tr class="even">
+<td align="left">S</td>
+<td align="left">S</td>
+<td align="right">203773</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>mutations %&gt;%
+  group_by(gene) %&gt;%
+  summarise(N=sum(type==&quot;N&quot;),
+            S=sum(type==&quot;S&quot;),
+            NS = N/S) %&gt;%
+  arrange(desc(NS)) %&gt;%
+  knitr::kable()</code></pre>
+<pre><code>`summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">gene</th>
+<th align="right">N</th>
+<th align="right">S</th>
+<th align="right">NS</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">ORF10</td>
+<td align="right">106380</td>
+<td align="right">3975</td>
+<td align="right">26.7622642</td>
+</tr>
+<tr class="even">
+<td align="left">S</td>
+<td align="right">1585655</td>
+<td align="right">203773</td>
+<td align="right">7.7814774</td>
+</tr>
+<tr class="odd">
+<td align="left">ORF3a</td>
+<td align="right">321140</td>
+<td align="right">52868</td>
+<td align="right">6.0743739</td>
+</tr>
+<tr class="even">
+<td align="left">N</td>
+<td align="right">1269052</td>
+<td align="right">330386</td>
+<td align="right">3.8411192</td>
+</tr>
+<tr class="odd">
+<td align="left">ORF8</td>
+<td align="right">301835</td>
+<td align="right">90946</td>
+<td align="right">3.3188376</td>
+</tr>
+<tr class="even">
+<td align="left">ORF7a</td>
+<td align="right">30242</td>
+<td align="right">15800</td>
+<td align="right">1.9140506</td>
+</tr>
+<tr class="odd">
+<td align="left">ORF7b</td>
+<td align="right">14421</td>
+<td align="right">14370</td>
+<td align="right">1.0035491</td>
+</tr>
+<tr class="even">
+<td align="left">ORF6</td>
+<td align="right">9293</td>
+<td align="right">9557</td>
+<td align="right">0.9723763</td>
+</tr>
+<tr class="odd">
+<td align="left">ORF1ab_pp1ab</td>
+<td align="right">2286539</td>
+<td align="right">2436193</td>
+<td align="right">0.9385705</td>
+</tr>
+<tr class="even">
+<td align="left">E</td>
+<td align="right">10035</td>
+<td align="right">12537</td>
+<td align="right">0.8004307</td>
+</tr>
+<tr class="odd">
+<td align="left">ORF1ab_pp1a</td>
+<td align="right">1266064</td>
+<td align="right">1587124</td>
+<td align="right">0.7977096</td>
+</tr>
+<tr class="even">
+<td align="left">M</td>
+<td align="right">24497</td>
+<td align="right">193753</td>
+<td align="right">0.1264342</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div id="genomes-sampled-pr.-week" class="section level1">
+<h1>Genomes sampled pr. week</h1>
+<pre class="r"><code>pd &lt;- metadata %&gt;%
+  filter(species==&quot;Human&quot;) %&gt;%
+  mutate(date_bin = cut(date, breaks = &quot;1 week&quot;)) %&gt;%
+  group_by(date_bin) %&gt;%
+  count()
+
+newlevels &lt;- sort(levels(pd$date_bin))
+
+pd &lt;- pd %&gt;% 
+  mutate(date_bin = fct_relevel(date_bin, newlevels)) %&gt;% 
+  ungroup() %&gt;%
+  mutate(date_bin=ymd(date_bin))
+
+ggplot(pd, aes(x=date_bin, y=n)) + 
+  geom_col() +
+  xlab(&quot;Sample collection date&quot;) +
+  ylab(&quot;Number of genomes&quot;) +
+  scale_x_date(name = &quot;&quot;, date_labels = &quot;%B&quot;) +
+  NULL</code></pre>
+<pre><code>Warning: Removed 1 rows containing missing values (position_stack).</code></pre>
+<p><img src="figure/1_working_with_the_data.snpeff.v1.rmd/unnamed-chunk-12-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="genomes-submitted-pr.-week" class="section level1">
+<h1>Genomes submitted pr. week</h1>
+<pre class="r"><code>pd &lt;- metadata %&gt;%
+  filter(species==&quot;Human&quot;) %&gt;%
+  mutate(date_bin = cut(ymd(date_submitted ), breaks = &quot;1 week&quot;)) %&gt;%
+  group_by(date_bin) %&gt;%
+  count()
+
+newlevels &lt;- sort(levels(pd$date_bin))
+
+pd &lt;- pd %&gt;% 
+  mutate(date_bin = fct_relevel(date_bin, newlevels)) %&gt;% 
+  ungroup() %&gt;%
+  mutate(date_bin=ymd(date_bin))
+
+ggplot(pd, aes(x=date_bin, y=n)) + 
+  geom_col() +
+  xlab(&quot;Sample submission date&quot;) +
+  ylab(&quot;Number of genomes&quot;) +
+  scale_x_date(name = &quot;&quot;, date_labels = &quot;%B&quot;) +
+  NULL</code></pre>
+<p><img src="figure/1_working_with_the_data.snpeff.v1.rmd/unnamed-chunk-13-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="mutational-clock" class="section level1">
+<h1>Mutational clock</h1>
+<pre class="r"><code>tmp &lt;- mutations %&gt;% 
+  group_by(id) %&gt;% 
+  distinct(position) %&gt;%
+  summarise(mutations = n())</code></pre>
+<pre><code>`summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre class="r"><code>interesting_lineages &lt;- c(&quot;B.1.1.7&quot;, &quot;P.1&quot;, &quot;B.1&quot;, &quot;B.1.351&quot;)
+
+pd &lt;- metadata %&gt;% 
+  left_join(tmp) %&gt;%
+  select(id, mutations,everything()) %&gt;%
+  filter(species==&quot;Human&quot;) %&gt;%
+  mutate(pango2 = ifelse(pangolin_lineage %in% interesting_lineages,
+                         pangolin_lineage, &quot;Other lineages&quot;)) %&gt;%
+  group_by(date,mutations,pango2) %&gt;%
+  count()</code></pre>
+<pre><code>Joining, by = &quot;id&quot;</code></pre>
+<pre class="r"><code>ggplot(pd, aes(x=date, y=mutations, color=pango2, size=n)) +
+  geom_point() + 
+  geom_smooth(aes(color=pango2), method=&quot;lm&quot;, se=F) +
+  NULL</code></pre>
+<pre><code>`geom_smooth()` using formula &#39;y ~ x&#39;</code></pre>
+<pre><code>Warning: Removed 219 rows containing non-finite values (stat_smooth).</code></pre>
+<pre><code>Warning: Removed 219 rows containing missing values (geom_point).</code></pre>
+<p><img src="figure/1_working_with_the_data.snpeff.v1.rmd/unnamed-chunk-14-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="mutational-clock-syn-vs.-non-syn" class="section level1">
+<h1>Mutational clock (Syn vs. Non-Syn)</h1>
+<pre class="r"><code>interesting_lineages &lt;- c(&quot;B.1.1.7&quot;, &quot;P.1&quot;, &quot;B.1&quot;, &quot;B.1.351&quot;)
+
+pd &lt;- metadata %&gt;% 
+  filter(species==&quot;Human&quot;) %&gt;%
+  mutate(pango2 = ifelse(pangolin_lineage %in% interesting_lineages,
+                         pangolin_lineage, &quot;Other lineages&quot;)) %&gt;%
+  group_by(date,pango2, count_N, count_S) %&gt;%
+  count() %&gt;%
+  pivot_longer(names_to = &quot;type&quot;, 
+              values_to = &quot;mutations&quot;, 
+                   cols = c(count_N, count_S))
+
+ggplot(pd, aes(x=date, y=mutations, color=pango2, size=n)) +
+  geom_point() + 
+  geom_smooth(aes(color=pango2), method=&quot;lm&quot;, se=F) +
+  facet_wrap(~type) +
+  NULL</code></pre>
+<pre><code>`geom_smooth()` using formula &#39;y ~ x&#39;</code></pre>
+<pre><code>Warning: Removed 972 rows containing non-finite values (stat_smooth).</code></pre>
+<pre><code>Warning: Removed 972 rows containing missing values (geom_point).</code></pre>
+<p><img src="figure/1_working_with_the_data.snpeff.v1.rmd/unnamed-chunk-15-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="mutational-clock-syn-vs.-non-syn-1" class="section level1">
+<h1>Mutational clock (Syn vs. Non-Syn)</h1>
+<pre class="r"><code>interesting_lineages &lt;- c(&quot;B.1.1.7&quot;, &quot;P.1&quot;, &quot;B.1&quot;, &quot;B.1.351&quot;)
+
+tmp &lt;- metadata %&gt;% 
+  filter(species==&quot;Human&quot; &amp; country==&quot;Denmark&quot;) %&gt;%
+  mutate(pango2 = ifelse(pangolin_lineage %in% interesting_lineages,
+                         pangolin_lineage, &quot;Other lineages&quot;))
+
+pd &lt;-  tmp %&gt;%
+  group_by(date,pango2, count_N, count_S) %&gt;%
+  count() %&gt;%
+  pivot_longer(names_to = &quot;type&quot;, 
+              values_to = &quot;mutations&quot;, 
+                   cols = c(count_N, count_S)) %&gt;%
+  mutate(type = fct_recode(type, &quot;Synonymous mutations&quot;=&quot;count_S&quot;,
+                           &quot;Nonsynonymous mutations&quot;=&quot;count_N&quot;))
+
+
+ggplot(pd, aes(x=date, y=mutations, color=pango2, size=n)) +
+  geom_point(alpha=0.5) + 
+  geom_smooth(method=&quot;lm&quot;, se=F, size=1, show.legend = F) +
+  ylab(&quot;Accumulated mutations&quot;) +
+  facet_wrap(~type) +
+  theme(axis.title.x = element_blank()) +
+  scale_color_aaas(name=&quot;Lineage&quot;) +
+  scale_size_continuous(name = &quot;Genomes&quot;) +
+  theme(strip.background = element_blank()) +
+  ggtitle(paste(nrow(tmp), &quot; Danish genomes (youngest genome:&quot;, max(pd$date), &quot;)&quot;, sep=&quot;&quot;)) +
+  NULL</code></pre>
+<pre><code>`geom_smooth()` using formula &#39;y ~ x&#39;</code></pre>
+<p><img src="figure/1_working_with_the_data.snpeff.v1.rmd/unnamed-chunk-16-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="d614g-frequency-in-weekly-bins" class="section level1">
+<h1>D614G frequency in weekly bins</h1>
+<pre class="r"><code>tmp1 &lt;- mutations %&gt;%
+  filter(gene==&quot;S&quot; &amp; aa_change==&quot;D614G&quot;) 
+
+pd &lt;- metadata %&gt;%
+  filter(species==&quot;Human&quot;) %&gt;%
+  mutate(mutation = ifelse(id %in% tmp1$id, &quot;mutated&quot;, &quot;Other&quot;)) %&gt;%
+  mutate(date_bin = cut(date, breaks = &quot;week&quot;)) %&gt;%
+  group_by(date_bin) %&gt;%
+  count(mutation)
+
+newlevels &lt;- sort(levels(pd$date_bin))
+
+pd &lt;- pd %&gt;% 
+  mutate(date_bin = fct_relevel(date_bin, newlevels)) %&gt;% 
+  ungroup() %&gt;%
+  mutate(date_bin=ymd(date_bin)) %&gt;%
+  pivot_wider(names_from = mutation, values_from=n, values_fill =0)
+
+ggplot(pd, aes(x=date_bin, y=mutated/(mutated+Other), size=mutated+Other))+   geom_point() +
+  geom_hline(yintercept = 1, linetype=&quot;dashed&quot;, color=&quot;#808080&quot;) +
+  xlab(&quot;&quot;) +
+  ylab(&quot;Proportion of genomes with mutation&quot;) +
+  scale_size(&quot;Number of genomes&quot;) +
+  scale_x_date(name = &quot;&quot;, date_labels = &quot;%B&quot;) +
+  NULL</code></pre>
+<pre><code>Warning: Removed 1 rows containing missing values (geom_point).</code></pre>
+<p><img src="figure/1_working_with_the_data.snpeff.v1.rmd/unnamed-chunk-17-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="n501y-around-the-world" class="section level1">
+<h1>N501Y around the world</h1>
+<p>Fraction of genomes within the last 28 days.</p>
+<p>We must have at least 10 “british variants” and at least 100 genomes total.</p>
+<pre class="r"><code>tmp1 &lt;- mutations %&gt;%
+  filter(gene==&quot;S&quot; &amp; aa_change==&quot;N501Y&quot;)
+
+x &lt;- metadata %&gt;%
+  filter(species==&quot;Human&quot;) %&gt;%
+  mutate(mutation = ifelse(id %in% tmp1$id, &quot;mutated&quot;, &quot;Other&quot;)) %&gt;%
+  group_by(country) %&gt;%
+  summarise(n_vui=sum(mutation==&quot;mutated&quot;), 
+            n_total=n()
+            ) %&gt;%
+  filter(n_vui &gt; 10) %&gt;%
+  arrange(desc(n_vui)) %&gt;%
+  slice(1:9)</code></pre>
+<pre><code>`summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre class="r"><code>knitr::kable(x)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">country</th>
+<th align="right">n_vui</th>
+<th align="right">n_total</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">United Kingdom</td>
+<td align="right">89842</td>
+<td align="right">216651</td>
+</tr>
+<tr class="even">
+<td align="left">Denmark</td>
+<td align="right">3049</td>
+<td align="right">39504</td>
+</tr>
+<tr class="odd">
+<td align="left">France</td>
+<td align="right">1887</td>
+<td align="right">7643</td>
+</tr>
+<tr class="even">
+<td align="left">Belgium</td>
+<td align="right">1832</td>
+<td align="right">6558</td>
+</tr>
+<tr class="odd">
+<td align="left">USA</td>
+<td align="right">1539</td>
+<td align="right">105130</td>
+</tr>
+<tr class="even">
+<td align="left">Netherlands</td>
+<td align="right">1322</td>
+<td align="right">9499</td>
+</tr>
+<tr class="odd">
+<td align="left">Italy</td>
+<td align="right">1247</td>
+<td align="right">5878</td>
+</tr>
+<tr class="even">
+<td align="left">Switzerland</td>
+<td align="right">1234</td>
+<td align="right">12402</td>
+</tr>
+<tr class="odd">
+<td align="left">Ireland</td>
+<td align="right">1019</td>
+<td align="right">2626</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>pd &lt;- metadata %&gt;%
+  filter(species==&quot;Human&quot;) %&gt;%
+  #filter(date &gt; &quot;2020-09-01&quot;) %&gt;%
+  filter(country %in% x$country) %&gt;%
+  mutate(mutation = ifelse(id %in% tmp1$id, &quot;mutated&quot;, &quot;Other&quot;)) %&gt;%
+  mutate(date_bin = cut(date, breaks = &quot;7 days&quot;)) %&gt;%
+  group_by(date_bin, country) %&gt;%
+  count(mutation)
+
+newlevels &lt;- sort(levels(pd$date_bin))
+
+pd &lt;- pd %&gt;% 
+  mutate(date_bin = fct_relevel(date_bin, newlevels)) %&gt;% 
+  ungroup() %&gt;%
+  mutate(date_bin=ymd(date_bin)) %&gt;%
+  pivot_wider(names_from = mutation, values_from=n, values_fill =0) %&gt;%
+  merge(x) %&gt;%
+  mutate(label = fct_reorder(paste(country, &quot;\nN501Y=&quot;, n_vui,sep=&quot;&quot;), .x = n_vui, .desc = TRUE)) %&gt;%
+  {.}
+
+ggplot(pd, aes(x=date_bin, y=mutated/(mutated+Other), 
+               color=country,
+               size=mutated+Other) ) + 
+  geom_point() +
+  geom_line(size=1) +
+  facet_wrap( ~label, scales = &quot;free&quot;) +
+  xlab(&quot;&quot;) +
+  ylab(&quot;Proportion of genomes with mutation&quot;) +
+  scale_size(&quot;Number of genomes&quot;) +
+  ggsci::scale_color_aaas(name=&quot;&quot;) +
+  ggtitle(&quot;Growth of N501Y pr. week\nNotice different scale on Y axis&quot;) +
+  NULL</code></pre>
+<pre><code>Warning: Removed 7 rows containing missing values (geom_point).</code></pre>
+<pre><code>Warning: Removed 7 row(s) containing missing values (geom_path).</code></pre>
+<p><img src="figure/1_working_with_the_data.snpeff.v1.rmd/unnamed-chunk-18-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="e484k-n501y-around-the-world" class="section level1">
+<h1>E484K + N501Y around the world</h1>
+<pre class="r"><code>tmp1 &lt;- mutations %&gt;%  filter(aa_change==&quot;E484K&quot; &amp; gene==&quot;S&quot;)
+tmp2 &lt;- mutations %&gt;%  filter(aa_change==&quot;N501Y&quot; &amp; gene==&quot;S&quot;)
+
+genomes_with_haplotype &lt;- intersect(tmp1$id, tmp2$id)
+
+x &lt;- metadata %&gt;%
+  filter(species==&quot;Human&quot;) %&gt;%
+  mutate(mutation = ifelse(id %in% genomes_with_haplotype, &quot;mutated&quot;, &quot;Other&quot;)) %&gt;%
+  group_by(country) %&gt;%
+  summarise(n_vui = sum(mutation==&quot;mutated&quot;),
+          n_total = n(), 
+         fraction = n_vui/n_total
+         ) %&gt;%
+  filter(n_vui &gt; 10) %&gt;%
+  arrange(desc(n_vui)) %&gt;%
+  slice(1:9)</code></pre>
+<pre><code>`summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre class="r"><code>knitr::kable(x)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">country</th>
+<th align="right">n_vui</th>
+<th align="right">n_total</th>
+<th align="right">fraction</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">South Africa</td>
+<td align="right">703</td>
+<td align="right">2535</td>
+<td align="right">0.2773176</td>
+</tr>
+<tr class="even">
+<td align="left">France</td>
+<td align="right">410</td>
+<td align="right">7643</td>
+<td align="right">0.0536439</td>
+</tr>
+<tr class="odd">
+<td align="left">Belgium</td>
+<td align="right">194</td>
+<td align="right">6558</td>
+<td align="right">0.0295822</td>
+</tr>
+<tr class="even">
+<td align="left">Brazil</td>
+<td align="right">193</td>
+<td align="right">2273</td>
+<td align="right">0.0849098</td>
+</tr>
+<tr class="odd">
+<td align="left">United Kingdom</td>
+<td align="right">193</td>
+<td align="right">216651</td>
+<td align="right">0.0008908</td>
+</tr>
+<tr class="even">
+<td align="left">Austria</td>
+<td align="right">96</td>
+<td align="right">1931</td>
+<td align="right">0.0497152</td>
+</tr>
+<tr class="odd">
+<td align="left">Netherlands</td>
+<td align="right">92</td>
+<td align="right">9499</td>
+<td align="right">0.0096852</td>
+</tr>
+<tr class="even">
+<td align="left">Switzerland</td>
+<td align="right">72</td>
+<td align="right">12402</td>
+<td align="right">0.0058055</td>
+</tr>
+<tr class="odd">
+<td align="left">Turkey</td>
+<td align="right">37</td>
+<td align="right">1568</td>
+<td align="right">0.0235969</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>pd &lt;- metadata %&gt;%
+  filter(species==&quot;Human&quot;) %&gt;%
+  filter(country %in% x$country) %&gt;%
+  mutate(mutation = ifelse(id %in% tmp1$id, &quot;mutated&quot;, &quot;Other&quot;)) %&gt;%
+  mutate(date_bin = cut(date, breaks = &quot;7 days&quot;)) %&gt;%
+  group_by(date_bin, country) %&gt;%
+  count(mutation)
+
+newlevels &lt;- sort(levels(pd$date_bin))
+
+pd &lt;- pd %&gt;% 
+  mutate(date_bin = fct_relevel(date_bin, newlevels)) %&gt;% 
+  ungroup() %&gt;%
+  mutate(date_bin=ymd(date_bin)) %&gt;%
+  pivot_wider(names_from = mutation, values_from=n, values_fill =0) %&gt;%
+  merge(x) %&gt;%
+  mutate(label = fct_reorder(paste(country, &quot;\n n(variant) =&quot;, n_vui,sep=&quot;&quot;), .x = n_vui, .desc = TRUE)) %&gt;%
+  {.}
+
+ggplot(pd, aes(x=date_bin, y=mutated/(mutated+Other), 
+               color=country,
+               size=mutated+Other) ) + 
+  geom_point() +
+  geom_line(size=1) +
+  facet_wrap( ~label, scales = &quot;free&quot;) +
+  xlab(&quot;&quot;) +
+  ylab(&quot;Proportion of genomes with mutation&quot;) +
+  scale_size(&quot;Number of genomes&quot;) +
+  ggsci::scale_color_aaas(name=&quot;&quot;) +
+  ggtitle(&quot;Growth of E484K + N501Y pr. week\nNotice different scale on Y axis&quot;) +
+  NULL</code></pre>
+<pre><code>Warning: Removed 7 rows containing missing values (geom_point).</code></pre>
+<pre><code>Warning: Removed 7 row(s) containing missing values (geom_path).</code></pre>
+<p><img src="figure/1_working_with_the_data.snpeff.v1.rmd/unnamed-chunk-19-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="n501y-in-denmark" class="section level1">
+<h1>N501Y in Denmark</h1>
+<pre class="r"><code>tmp1 &lt;- mutations %&gt;%
+  filter(gene==&quot;S&quot; &amp; aa_change==&quot;N501Y&quot;)
+
+pd &lt;- metadata %&gt;%
+  filter(species==&quot;Human&quot; &amp; country==&quot;Denmark&quot;) %&gt;%
+  filter(date &gt; &quot;2020-11-01&quot;) %&gt;%
+  mutate(mutation = ifelse(id %in% tmp1$id, &quot;mutated&quot;, &quot;Other&quot;)) %&gt;%
+  mutate(date_bin = cut(date, breaks = &quot;7 days&quot;)) %&gt;%
+  group_by(date_bin, country) %&gt;%
+  count(mutation)
+
+newlevels &lt;- sort(levels(pd$date_bin))
+
+pd &lt;- pd %&gt;% 
+  mutate(date_bin = fct_relevel(date_bin, newlevels)) %&gt;% 
+  ungroup() %&gt;%
+  mutate(date_bin=ymd(date_bin)) %&gt;%
+  pivot_wider(names_from = mutation, values_from=n, values_fill =0) %&gt;%
+  {.}
+
+ggplot(pd, aes(x=date_bin, y=mutated/(mutated+Other), 
+               size=mutated+Other) ) + 
+  geom_point() +
+  geom_line(size=1) +
+  xlab(&quot;&quot;) +
+  ylab(&quot;Proportion of genomes with mutation&quot;) +
+  scale_size(&quot;Number of genomes&quot;) +
+  ggsci::scale_color_aaas(name=&quot;&quot;) +
+  ggtitle(&quot;Growth of N501Y pr. week&quot;) +
+  NULL</code></pre>
+<p><img src="figure/1_working_with_the_data.snpeff.v1.rmd/unnamed-chunk-20-1.png" width="672" style="display: block; margin: auto;" /></p>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span> Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.0.2 (2020-06-22)
+Platform: x86_64-apple-darwin17.0 (64-bit)
+Running under: macOS Catalina 10.15.6
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/4.0/Resources/lib/libRblas.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/4.0/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] ggrepel_0.9.1   ggsci_2.9       lubridate_1.7.9 cowplot_1.1.0  
+ [5] forcats_0.5.0   stringr_1.4.0   dplyr_1.0.2     purrr_0.3.4    
+ [9] readr_1.3.1     tidyr_1.1.1     tibble_3.0.3    ggplot2_3.3.2  
+[13] tidyverse_1.3.0 workflowr_1.6.2
+
+loaded via a namespace (and not attached):
+ [1] Rcpp_1.0.5       lattice_0.20-41  assertthat_0.2.1 rprojroot_2.0.2 
+ [5] digest_0.6.25    R6_2.4.1         cellranger_1.1.0 backports_1.1.9 
+ [9] reprex_0.3.0     evaluate_0.14    httr_1.4.2       highr_0.8       
+[13] pillar_1.4.6     rlang_0.4.7      readxl_1.3.1     rstudioapi_0.11 
+[17] blob_1.2.1       Matrix_1.2-18    rmarkdown_2.7    splines_4.0.2   
+[21] labeling_0.3     munsell_0.5.0    broom_0.7.0      compiler_4.0.2  
+[25] httpuv_1.5.4     modelr_0.1.8     xfun_0.22        pkgconfig_2.0.3 
+[29] mgcv_1.8-31      htmltools_0.5.0  tidyselect_1.1.0 fansi_0.4.1     
+[33] crayon_1.3.4     dbplyr_1.4.4     withr_2.2.0      later_1.1.0.1   
+[37] grid_4.0.2       nlme_3.1-148     jsonlite_1.7.1   gtable_0.3.0    
+[41] lifecycle_0.2.0  DBI_1.1.0        git2r_0.27.1     magrittr_1.5    
+[45] scales_1.1.1     cli_2.0.2        stringi_1.4.6    farver_2.0.3    
+[49] fs_1.5.0         promises_1.1.1   xml2_1.3.2       ellipsis_0.3.1  
+[53] generics_0.0.2   vctrs_0.3.2      tools_4.0.2      glue_1.4.1      
+[57] hms_0.5.3        yaml_2.2.1       colorspace_1.4-1 rvest_0.3.6     
+[61] knitr_1.31       haven_2.3.1     </code></pre>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+http://docs.mathjax.org/en/latest/configuration.html.  This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

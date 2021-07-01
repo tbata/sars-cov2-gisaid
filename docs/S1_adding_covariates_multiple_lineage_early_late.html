@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="T. Bataillon" />
+
+
+<title>Aggregating covariates to windows counts in early period</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/master/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #ffffff;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">sars-cov2-gisaid</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="S2_mutations_counts_covs_exploration_visuals.html">Overview period 1</a>
+</li>
+<li>
+  <a href="S2_mutations_counts_covs_exploration_visuals_period2.html">Overview period 2</a>
+</li>
+<li>
+  <a href="S2_mutations_counts_covs_exploration_visuals_period3.html">Overview period 3</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Aggregating covariates to windows counts in early period</h1>
+<h4 class="author">T. Bataillon</h4>
+<h4 class="date">Last update: 2021-07-01 10:06:04</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span> workflowr <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> </a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2021-07-01
+</p>
+<p>
+<strong>Checks:</strong> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 6 <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> 1
+</p>
+<p>
+<strong>Knit directory:</strong> <code>sars-cov2-gisaid/</code> <span class="glyphicon glyphicon-question-sign" aria-hidden="true" title="This is the local directory in which the code in this file was executed."> </span>
+</p>
+<p>
+This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis was created with <a
+  href="https://github.com/jdblischak/workflowr">workflowr</a> (version 1.6.2). The <em>Checks</em> tab describes the reproducibility checks that were applied when the results were created. The <em>Past versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguncommittedchanges"> <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> <strong>R Markdown file:</strong> uncommitted changes </a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguncommittedchanges" class="panel-collapse collapse">
+<div class="panel-body">
+<p>The R Markdown file has unstaged changes. To know which version of the R Markdown file created these results, you’ll want to first commit it to the Git repo. If you’re still working on the analysis, you can ignore this warning. When you’re finished, you can run <code>wflow_publish</code> to commit the R Markdown file and build the HTML.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the global environment can affect the analysis in your R Markdown file in unknown ways. For reproduciblity it’s best to always run the code in an empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20210408code"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Seed:</strong> <code>set.seed(20210408)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20210408code" class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20210408)</code> was run prior to running the code in the R Markdown file. Setting a seed ensures that any results that rely on randomness, e.g. subsampling or permutations, are reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Session information:</strong> recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be confident that you successfully produced the results during this run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrong9c3698e"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> 9c3698e </a>
+</p>
+</div>
+<div id="strongRepositoryversionstrong9c3698e" class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version 9c3698e. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .DS_Store
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    analysis/.Rhistory
+    Ignored:    data/.DS_Store
+
+Untracked files:
+    Untracked:  analysis/1_working_with_the_data.snpeff.v2.gisaid_v2.0.rmd
+    Untracked:  analysis/2_human_lineage_mutations.snpeff.v1.rmd
+    Untracked:  analysis/hard_coded_params.R
+    Untracked:  code/make_debug_miniature_dataset.R
+    Untracked:  code/make_genome_positions.R
+    Untracked:  data/2021-04-09/
+    Untracked:  data/MutCounts_with_covariates.csv
+    Untracked:  data/proteins_sarscov2_genome_positions.rds
+    Untracked:  how_to_work_together.md
+    Untracked:  output/README.html
+
+Unstaged changes:
+    Modified:   README.md
+    Modified:   _workflowr.yml
+    Deleted:    analysis/S0_creating_data_bywindows_lineages_OBSOLETE.Rmd
+    Modified:   analysis/S0_creating_data_bywindows_lineages_byphase.Rmd
+    Modified:   analysis/S1_adding_covariates_multiple_lineage_early_late.Rmd
+    Modified:   analysis/S1_adding_covariates_multiple_lineage_period2.Rmd
+    Modified:   analysis/S1_adding_covariates_multiple_lineage_period3.Rmd
+    Modified:   analysis/S2_mutations_counts_covs_exploration_visuals.Rmd
+    Modified:   analysis/S2_mutations_counts_covs_exploration_visuals_period2.Rmd
+    Modified:   analysis/S2_mutations_counts_covs_exploration_visuals_period3.Rmd
+    Modified:   analysis/S4_mutation_counts_models_period1.Rmd
+    Modified:   analysis/S4_mutation_counts_models_period2.Rmd
+    Modified:   analysis/S4_mutation_counts_models_period3.Rmd
+    Modified:   analysis/_site.yml
+    Modified:   analysis/about.Rmd
+    Modified:   analysis/index.Rmd
+    Modified:   code/README.md
+    Modified:   data/README.md
+    Modified:   output/README.md
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not included in this status report because it is ok for generated content to have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were made to the R Markdown (<code>analysis/S1_adding_covariates_multiple_lineage_early_late.Rmd</code>) and HTML (<code>docs/S1_adding_covariates_multiple_lineage_early_late.html</code>) files. If you’ve configured a remote Git repository (see <code>?wflow_git_remote</code>), click on the hyperlinks in the table below to view the files as they were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+9c3698e
+</td>
+<td>
+tbata
+</td>
+<td>
+2021-06-30
+</td>
+<td>
+Added 100 nt windows for 3 periods on downsized 300k data. and update of all analysis
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<pre class="r"><code># data_path &lt;- &quot;data/2021-06-18/&quot;
+source(&quot;analysis/hard_coded_params.R&quot;)</code></pre>
+<div id="using-data-version-data2021-06-18" class="section level1">
+<h1>Using data version: data/2021-06-18/</h1>
+</div>
+<div id="note" class="section level1">
+<h1>Note</h1>
+<!-- This script is similar to the single lineage merging script (S1xxx) but upgrading to set of lineages collected in early/late period. -->
+<p><code>data100</code> is an rds containing windows parsed from gisaid data parse using the S0 script <code>susan_df</code> is the original mut counts ( Angela’s) + covariates integration performed by Susan (see readme.rmd in <code>/data</code>)</p>
+<p>Note currently the script is run <strong>twice</strong> on both early and late counts (rds objects)</p>
+</div>
+<div id="loading-data-from-windows-counts-covariates" class="section level1">
+<h1>Loading data from windows counts + covariates</h1>
+<pre class="r"><code>suppressPackageStartupMessages(library(tidyverse)) # to avoid messy 
+library(cowplot)
+
+data100 &lt;- readRDS(file = &quot;output/data_100pb_pangolin_period1.rds&quot;)
+dim(data100)</code></pre>
+<pre><code>[1] 599   7</code></pre>
+<pre class="r"><code>names(data100)[2] &lt;- &quot;gene&quot;
+head(data100)</code></pre>
+<pre><code># A tibble: 6 x 7
+# Groups:   pangolin_lineage, gene, gene_bin [4]
+  pangolin_lineage gene  gene_bin type  unique_mutations max_genomes_mut…
+  &lt;chr&gt;            &lt;chr&gt;    &lt;dbl&gt; &lt;fct&gt;            &lt;int&gt;            &lt;int&gt;
+1 B.1              E            1 Nons…                2                2
+2 B.1              E            1 Syno…                4                8
+3 B.1              E            2 Nons…                2                2
+4 B.1              endo…        1 Nons…                2                4
+5 B.1              endo…        1 Syno…                2                2
+6 B.1              endo…        2 Nons…                1                2
+# … with 1 more variable: window_start &lt;dbl&gt;</code></pre>
+<pre class="r"><code># covs  parsed by susan .. 
+susan_df &lt;-read_csv(&quot;data/MutCounts_with_covariates.csv&quot;)
+names(susan_df)</code></pre>
+<pre><code> [1] &quot;Protein&quot;       &quot;Range&quot;         &quot;Lineage&quot;       &quot;protein.range&quot;
+ [5] &quot;N&quot;             &quot;Type&quot;          &quot;Count&quot;         &quot;t.period&quot;     
+ [9] &quot;W.R.dS&quot;        &quot;W.G.dS&quot;        &quot;R.G.dS&quot;        &quot;ii.CD4&quot;       
+[13] &quot;ii.CD8&quot;        &quot;ii.CD4.max&quot;    &quot;ii.CD8.max&quot;    &quot;ENC&quot;          
+[17] &quot;ENC_STD&quot;       &quot;GC&quot;            &quot;CAI&quot;           &quot;CAI_STD&quot;      
+[21] &quot;PPI&quot;           &quot;GO&quot;            &quot;Prot.Dom&quot;     </code></pre>
+<pre class="r"><code>dim(susan_df)</code></pre>
+<pre><code>[1] 39296    23</code></pre>
+<pre class="r"><code>length(unique(susan_df$Lineage)) #32 Lineages </code></pre>
+<pre><code>[1] 32</code></pre>
+<pre class="r"><code>39296/(32*2) # check that 614 windows *2 (2 time periods) matches the total number of lines on the covs data organized by Susan </code></pre>
+<pre><code>[1] 614</code></pre>
+<pre class="r"><code>gene_positions_md &lt;-readRDS(&quot;data/proteins_sarscov2_genome_positions.rds&quot;)
+names(gene_positions_md)[1]&lt;-&quot;gene&quot; #(to be consistent with data100)</code></pre>
+</div>
+<div id="adding-covariates-to-the-new-compiled-counts-of-mutations-per-window" class="section level1">
+<h1>Adding covariates to the new compiled counts of mutations per window</h1>
+<p>First reformatting data100 to match the ids of susan’s covariates info before joining : I use the <code>protein.range</code> as pivotal column to make joins</p>
+<pre class="r"><code>names(data100)</code></pre>
+<pre><code>[1] &quot;pangolin_lineage&quot;    &quot;gene&quot;                &quot;gene_bin&quot;           
+[4] &quot;type&quot;                &quot;unique_mutations&quot;    &quot;max_genomes_mutated&quot;
+[7] &quot;window_start&quot;       </code></pre>
+<pre class="r"><code>head(data100)</code></pre>
+<pre><code># A tibble: 6 x 7
+# Groups:   pangolin_lineage, gene, gene_bin [4]
+  pangolin_lineage gene  gene_bin type  unique_mutations max_genomes_mut…
+  &lt;chr&gt;            &lt;chr&gt;    &lt;dbl&gt; &lt;fct&gt;            &lt;int&gt;            &lt;int&gt;
+1 B.1              E            1 Nons…                2                2
+2 B.1              E            1 Syno…                4                8
+3 B.1              E            2 Nons…                2                2
+4 B.1              endo…        1 Nons…                2                4
+5 B.1              endo…        1 Syno…                2                2
+6 B.1              endo…        2 Nons…                1                2
+# … with 1 more variable: window_start &lt;dbl&gt;</code></pre>
+<pre class="r"><code>data100 &lt;- data100 %&gt;%
+  na.omit() %&gt;%
+  mutate(protein.range = paste(gene,gene_bin,sep=&quot;.&quot;)) 
+head(data100)</code></pre>
+<pre><code># A tibble: 6 x 8
+# Groups:   pangolin_lineage, gene, gene_bin [4]
+  pangolin_lineage gene  gene_bin type  unique_mutations max_genomes_mut…
+  &lt;chr&gt;            &lt;chr&gt;    &lt;dbl&gt; &lt;fct&gt;            &lt;int&gt;            &lt;int&gt;
+1 B.1              E            1 Nons…                2                2
+2 B.1              E            1 Syno…                4                8
+3 B.1              E            2 Nons…                2                2
+4 B.1              endo…        1 Nons…                2                4
+5 B.1              endo…        1 Syno…                2                2
+6 B.1              endo…        2 Nons…                1                2
+# … with 2 more variables: window_start &lt;dbl&gt;, protein.range &lt;chr&gt;</code></pre>
+<p>We loop over lineage and aggregate covs from susan and then stitch data together … might need to explore if there is a faster way … right now it works fine</p>
+<div id="lineages-to-merge" class="section level2">
+<h2>Lineages to merge</h2>
+<p>We first decide on the subset of <code>lineages_to_merge</code>: here we take the intersection between <code>susan_df</code> and <code>data100</code> Later we can also choose all lineages in the <code>data100</code> parse</p>
+<pre class="r"><code>lineages_to_merge &lt;-unique(data100$pangolin_lineage)
+lineages_to_merge[1]</code></pre>
+<pre><code>[1] &quot;B.1&quot;</code></pre>
+<pre class="r"><code>(nLin &lt;- length(lineages_to_merge))</code></pre>
+<pre><code>[1] 4</code></pre>
+</div>
+<div id="loop-to-merge-susans-metadata" class="section level2">
+<h2>Loop to merge susans metadata</h2>
+<div id="extracting-the-md-in-614-windows" class="section level3">
+<h3>extracting the md in 614 windows</h3>
+<p>Arbitrarily we use A.1 (note this is a weakness of our coding here as it assumes the presence of A.1 in the data)</p>
+<pre class="r"><code>susan_md &lt;- susan_df %&gt;%
+  filter(Lineage == &quot;A.1&quot;) %&gt;% 
+  filter(t.period == 1)
+susan_md &lt;- susan_md[,c(4,6, 9:23)]
+susan_md$Type &lt;- as.factor(susan_md$Type)
+names(susan_md)</code></pre>
+<pre><code> [1] &quot;protein.range&quot; &quot;Type&quot;          &quot;W.R.dS&quot;        &quot;W.G.dS&quot;       
+ [5] &quot;R.G.dS&quot;        &quot;ii.CD4&quot;        &quot;ii.CD8&quot;        &quot;ii.CD4.max&quot;   
+ [9] &quot;ii.CD8.max&quot;    &quot;ENC&quot;           &quot;ENC_STD&quot;       &quot;GC&quot;           
+[13] &quot;CAI&quot;           &quot;CAI_STD&quot;       &quot;PPI&quot;           &quot;GO&quot;           
+[17] &quot;Prot.Dom&quot;     </code></pre>
+<pre class="r"><code>names(susan_md)[2]&lt;-&quot;type&quot;
+names(susan_md)</code></pre>
+<pre><code> [1] &quot;protein.range&quot; &quot;type&quot;          &quot;W.R.dS&quot;        &quot;W.G.dS&quot;       
+ [5] &quot;R.G.dS&quot;        &quot;ii.CD4&quot;        &quot;ii.CD8&quot;        &quot;ii.CD4.max&quot;   
+ [9] &quot;ii.CD8.max&quot;    &quot;ENC&quot;           &quot;ENC_STD&quot;       &quot;GC&quot;           
+[13] &quot;CAI&quot;           &quot;CAI_STD&quot;       &quot;PPI&quot;           &quot;GO&quot;           
+[17] &quot;Prot.Dom&quot;     </code></pre>
+<pre class="r"><code>dim(susan_md)</code></pre>
+<pre><code>[1] 614  17</code></pre>
+<pre class="r"><code>summary(susan_md)</code></pre>
+<pre><code> protein.range      type         W.R.dS            W.G.dS       
+ Length:614         NS:307   Min.   :0.02297   Min.   :0.07715  
+ Class :character   S :307   1st Qu.:0.10137   1st Qu.:0.43180  
+ Mode  :character            Median :0.15300   Median :0.58662  
+                             Mean   :0.19768   Mean   :0.74766  
+                             3rd Qu.:0.22812   3rd Qu.:0.75175  
+                             Max.   :2.32798   Max.   :4.00000  
+                                                                
+     R.G.dS            ii.CD4           ii.CD8         ii.CD4.max    
+ Min.   :0.06771   Min.   :0.0000   Min.   :0.0000   Min.   :0.0000  
+ 1st Qu.:0.43401   1st Qu.:0.0075   1st Qu.:0.0218   1st Qu.:0.0450  
+ Median :0.57826   Median :0.0352   Median :0.0749   Median :0.1372  
+ Mean   :0.76629   Mean   :0.0745   Mean   :0.0832   Mean   :0.1849  
+ 3rd Qu.:0.72974   3rd Qu.:0.1198   3rd Qu.:0.1265   3rd Qu.:0.2047  
+ Max.   :4.00000   Max.   :0.4238   Max.   :0.2142   Max.   :0.9030  
+                   NA&#39;s   :490      NA&#39;s   :490      NA&#39;s   :490     
+   ii.CD8.max          ENC           ENC_STD              GC       
+ Min.   :0.0000   Min.   :46.35   Min.   :0.02975   Min.   :28.45  
+ 1st Qu.:0.1157   1st Qu.:47.40   1st Qu.:0.06636   1st Qu.:35.97  
+ Median :0.2518   Median :48.72   Median :0.07618   Median :37.48  
+ Mean   :0.2514   Mean   :49.03   Mean   :0.09679   Mean   :38.09  
+ 3rd Qu.:0.4092   3rd Qu.:50.51   3rd Qu.:0.09836   3rd Qu.:38.76  
+ Max.   :0.5876   Max.   :54.51   Max.   :0.31083   Max.   :48.52  
+ NA&#39;s   :490      NA&#39;s   :28      NA&#39;s   :28                       
+      CAI            CAI_STD              PPI               GO       
+ Min.   :0.6369   Min.   :0.000370   Min.   :  2.00   Min.   : 6.00  
+ 1st Qu.:0.7204   1st Qu.:0.000420   1st Qu.:  5.00   1st Qu.: 7.00  
+ Median :0.7247   Median :0.000500   Median : 25.00   Median :10.00  
+ Mean   :0.7241   Mean   :0.001858   Mean   : 36.07   Mean   :12.86  
+ 3rd Qu.:0.7320   3rd Qu.:0.000880   3rd Qu.: 37.00   3rd Qu.:17.00  
+ Max.   :0.7585   Max.   :0.120500   Max.   :303.00   Max.   :25.00  
+                                                      NA&#39;s   :268    
+    Prot.Dom   
+ Min.   :1.00  
+ 1st Qu.:1.00  
+ Median :2.00  
+ Mean   :3.15  
+ 3rd Qu.:4.00  
+ Max.   :9.00  
+ NA&#39;s   :2     </code></pre>
+</div>
+<div id="looping-and-merging" class="section level3">
+<h3>Looping and merging</h3>
+<pre class="r"><code>data100_susansmd &lt;- NULL
+dim(data100_susansmd)</code></pre>
+<pre><code>NULL</code></pre>
+<pre class="r"><code>for(mypangolin in lineages_to_merge) {
+  cat(&quot;Merging Lineage &quot;, mypangolin)
+  
+  gisaid_counts &lt;- data100 %&gt;%
+    filter(pangolin_lineage == mypangolin) %&gt;%
+    mutate(type = fct_recode(type,&quot;S&quot;= &quot;Synonymous substitutions&quot;, &quot;NS&quot;=&quot;Nonsynonymous substitutions&quot;))
+  
+  cat(mypangolin, &quot; : &quot;, dim(gisaid_counts)[1], &quot; windows with non zero counts \n&quot;)
+  data100_annotated_wzeros&lt;- susan_md %&gt;%
+  left_join(gisaid_counts,by = c(&quot;type&quot;, &quot;protein.range&quot;))
+  data100_annotated_wzeros &lt;- mutate(data100_annotated_wzeros, 
+         pangolin_lineage = mypangolin) #forcing lineage name on NA
+  cat(&quot;After merging: &quot;, dim(data100_annotated_wzeros)[1], &quot; windows found (should have 614) \n&quot;)
+  data100_susansmd &lt;- bind_rows(data100_susansmd,data100_annotated_wzeros)
+}</code></pre>
+<pre><code>Merging Lineage  B.1B.1  :  406  windows with non zero counts 
+After merging:  614  windows found (should have 614) 
+Merging Lineage  B.1.1B.1.1  :  156  windows with non zero counts 
+After merging:  614  windows found (should have 614) 
+Merging Lineage  B.1.1.28B.1.1.28  :  24  windows with non zero counts 
+After merging:  614  windows found (should have 614) 
+Merging Lineage  B.1.177B.1.177  :  13  windows with non zero counts 
+After merging:  614  windows found (should have 614) </code></pre>
+<pre class="r"><code>dim(data100_susansmd)</code></pre>
+<pre><code>[1] 2456   23</code></pre>
+<pre class="r"><code>summary(data100_susansmd$unique_mutations)</code></pre>
+<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA&#39;s 
+   1.00    1.00    1.00    1.56    2.00   11.00    1858 </code></pre>
+</div>
+<div id="filling-in-zeros-instead-of-nas-after-merging" class="section level3">
+<h3>Filling in zeros instead of NAs after merging</h3>
+<p>The merge generates various NAs for windows with zero counts in the gisaid data and these should be fixed: NA in counts -&gt; 0 NA in max_genomes_mutated -&gt;0 NA in window_start rebuild using gene structure</p>
+<pre class="r"><code>data100_susansmd &lt;- data100_susansmd %&gt;%
+  mutate(unique_mutations = ifelse(is.na(unique_mutations), 0, unique_mutations),
+         max_genomes_mutated  = ifelse(is.na(max_genomes_mutated), 0, max_genomes_mutated)) 
+
+# rebuilding gene and bins in gene
+data100_susansmd &lt;- data100_susansmd %&gt;%
+  separate(col = protein.range , into = c(&quot;gene_name&quot;,&quot;gene_bin&quot;))
+
+
+get_windowstart &lt;- function(my_gene, my_bin) {
+  thestart &lt;- gene_positions_md$start_pos[which(gene_positions_md$gene == my_gene)]
+  return(thestart + 100*(as.numeric(my_bin)-1))
+  }
+
+
+data100_susansmd &lt;- data100_susansmd %&gt;%
+  mutate(window_start_gis = unlist(map2(.f = get_windowstart,.x = gene_name, .y=gene_bin))) 
+# %&gt;%
+#   select(-c(window_start))</code></pre>
+</div>
+<div id="sanity-check-on-the-merged-data" class="section level3">
+<h3>Sanity check on the merged data</h3>
+<pre class="r"><code>(dim(data100_susansmd)[1] /614) == nLin   # check on 614 lines of obs per lineage</code></pre>
+<pre><code>[1] TRUE</code></pre>
+<pre class="r"><code>names(data100_susansmd)</code></pre>
+<pre><code> [1] &quot;gene_name&quot;           &quot;gene_bin&quot;            &quot;type&quot;               
+ [4] &quot;W.R.dS&quot;              &quot;W.G.dS&quot;              &quot;R.G.dS&quot;             
+ [7] &quot;ii.CD4&quot;              &quot;ii.CD8&quot;              &quot;ii.CD4.max&quot;         
+[10] &quot;ii.CD8.max&quot;          &quot;ENC&quot;                 &quot;ENC_STD&quot;            
+[13] &quot;GC&quot;                  &quot;CAI&quot;                 &quot;CAI_STD&quot;            
+[16] &quot;PPI&quot;                 &quot;GO&quot;                  &quot;Prot.Dom&quot;           
+[19] &quot;pangolin_lineage&quot;    &quot;gene&quot;                &quot;unique_mutations&quot;   
+[22] &quot;max_genomes_mutated&quot; &quot;window_start&quot;        &quot;window_start_gis&quot;   </code></pre>
+<pre class="r"><code>summary(data100_susansmd)</code></pre>
+<pre><code>  gene_name           gene_bin         type          W.R.dS       
+ Length:2456        Length:2456        NS:1228   Min.   :0.02297  
+ Class :character   Class :character   S :1228   1st Qu.:0.10122  
+ Mode  :character   Mode  :character             Median :0.15300  
+                                                 Mean   :0.19768  
+                                                 3rd Qu.:0.22825  
+                                                 Max.   :2.32798  
+                                                                  
+     W.G.dS            R.G.dS            ii.CD4           ii.CD8      
+ Min.   :0.07715   Min.   :0.06771   Min.   :0.0000   Min.   :0.0000  
+ 1st Qu.:0.43086   1st Qu.:0.43382   1st Qu.:0.0075   1st Qu.:0.0218  
+ Median :0.58662   Median :0.57826   Median :0.0352   Median :0.0749  
+ Mean   :0.74766   Mean   :0.76629   Mean   :0.0745   Mean   :0.0832  
+ 3rd Qu.:0.75231   3rd Qu.:0.72985   3rd Qu.:0.1198   3rd Qu.:0.1265  
+ Max.   :4.00000   Max.   :4.00000   Max.   :0.4238   Max.   :0.2142  
+                                     NA&#39;s   :1960     NA&#39;s   :1960    
+   ii.CD4.max       ii.CD8.max          ENC           ENC_STD       
+ Min.   :0.0000   Min.   :0.0000   Min.   :46.35   Min.   :0.02975  
+ 1st Qu.:0.0450   1st Qu.:0.1157   1st Qu.:47.40   1st Qu.:0.06636  
+ Median :0.1372   Median :0.2518   Median :48.72   Median :0.07618  
+ Mean   :0.1849   Mean   :0.2514   Mean   :49.03   Mean   :0.09679  
+ 3rd Qu.:0.2047   3rd Qu.:0.4092   3rd Qu.:50.51   3rd Qu.:0.09836  
+ Max.   :0.9030   Max.   :0.5876   Max.   :54.51   Max.   :0.31083  
+ NA&#39;s   :1960     NA&#39;s   :1960     NA&#39;s   :112     NA&#39;s   :112      
+       GC             CAI            CAI_STD              PPI        
+ Min.   :28.45   Min.   :0.6369   Min.   :0.000370   Min.   :  2.00  
+ 1st Qu.:35.97   1st Qu.:0.7204   1st Qu.:0.000420   1st Qu.:  5.00  
+ Median :37.48   Median :0.7247   Median :0.000500   Median : 25.00  
+ Mean   :38.09   Mean   :0.7241   Mean   :0.001858   Mean   : 36.07  
+ 3rd Qu.:38.76   3rd Qu.:0.7320   3rd Qu.:0.000880   3rd Qu.: 37.00  
+ Max.   :48.52   Max.   :0.7585   Max.   :0.120500   Max.   :303.00  
+                                                                     
+       GO           Prot.Dom    pangolin_lineage       gene          
+ Min.   : 6.00   Min.   :1.00   Length:2456        Length:2456       
+ 1st Qu.: 7.00   1st Qu.:1.00   Class :character   Class :character  
+ Median :10.00   Median :2.00   Mode  :character   Mode  :character  
+ Mean   :12.86   Mean   :3.15                                        
+ 3rd Qu.:17.00   3rd Qu.:4.00                                        
+ Max.   :25.00   Max.   :9.00                                        
+ NA&#39;s   :1072    NA&#39;s   :8                                           
+ unique_mutations  max_genomes_mutated  window_start   window_start_gis
+ Min.   : 0.0000   Min.   :   0.000    Min.   :  300   Min.   :  266   
+ 1st Qu.: 0.0000   1st Qu.:   0.000    1st Qu.: 7700   1st Qu.: 7720   
+ Median : 0.0000   Median :   0.000    Median :14700   Median :14842   
+ Mean   : 0.3799   Mean   :   4.048    Mean   :15047   Mean   :14981   
+ 3rd Qu.: 0.0000   3rd Qu.:   0.000    3rd Qu.:22675   3rd Qu.:22363   
+ Max.   :11.0000   Max.   :2300.000    Max.   :29600   Max.   :29658   
+                                       NA&#39;s   :1858                    </code></pre>
+</div>
+<div id="output-as-rds" class="section level3">
+<h3>Output as RDS</h3>
+<p>WE save the data100_susansmd as RDS object</p>
+<pre class="r"><code># saveRDS(data100_susansmd, &quot;data_100pb_early_withCovs.rds&quot;)
+saveRDS(data100_susansmd, &quot;output/data_100pb_pangolin_period1_withCovs.rds&quot;)</code></pre>
+</div>
+</div>
+</div>
+<div id="graphical-overview-of-counts" class="section level1">
+<h1>Graphical Overview of counts</h1>
+<p>reading from rds as a check</p>
+<pre class="r"><code>counts_annotated &lt;- readRDS(&quot;output/data_100pb_pangolin_period1_withCovs.rds&quot;)
+dim(counts_annotated)</code></pre>
+<pre><code>[1] 2456   24</code></pre>
+<pre class="r"><code>names(counts_annotated)</code></pre>
+<pre><code> [1] &quot;gene_name&quot;           &quot;gene_bin&quot;            &quot;type&quot;               
+ [4] &quot;W.R.dS&quot;              &quot;W.G.dS&quot;              &quot;R.G.dS&quot;             
+ [7] &quot;ii.CD4&quot;              &quot;ii.CD8&quot;              &quot;ii.CD4.max&quot;         
+[10] &quot;ii.CD8.max&quot;          &quot;ENC&quot;                 &quot;ENC_STD&quot;            
+[13] &quot;GC&quot;                  &quot;CAI&quot;                 &quot;CAI_STD&quot;            
+[16] &quot;PPI&quot;                 &quot;GO&quot;                  &quot;Prot.Dom&quot;           
+[19] &quot;pangolin_lineage&quot;    &quot;gene&quot;                &quot;unique_mutations&quot;   
+[22] &quot;max_genomes_mutated&quot; &quot;window_start&quot;        &quot;window_start_gis&quot;   </code></pre>
+<div id="counts-along-windows" class="section level2">
+<h2>counts along windows</h2>
+<pre class="r"><code>ggplot(data = counts_annotated,
+       aes(x = window_start_gis, y = unique_mutations, 
+           color = type))+
+  geom_point()+
+  facet_wrap(~pangolin_lineage, ncol = 1, scales = &quot;free_y&quot;, strip.position = &quot;right&quot;)+
+  theme(legend.position = &quot;top&quot;)+
+  theme_cowplot(font_size = 12)+
+  scale_colour_viridis_d(name=&quot;&quot;, direction = -1)+
+  NULL</code></pre>
+<p><img src="figure/S1_adding_covariates_multiple_lineage_early_late.Rmd/unnamed-chunk-11-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot(data = counts_annotated,
+       aes(x =unique_mutations, fill = type))+
+  geom_histogram(binwidth = 1)+
+  facet_wrap(~  pangolin_lineage + type, ncol = 2, strip.position = &quot;right&quot;)+
+  theme_minimal(base_size = 15)+
+  xlab(&quot;nb unique mutations per window (gisaid)&quot;)+
+  scale_fill_viridis_d(direction = -1)+
+  theme_cowplot(font_size = 12)+
+  theme(legend.position = &quot;top&quot;)+
+  NULL</code></pre>
+<p><img src="figure/S1_adding_covariates_multiple_lineage_early_late.Rmd/unnamed-chunk-12-1.png" width="672" style="display: block; margin: auto;" /></p>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span> Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.0.2 (2020-06-22)
+Platform: x86_64-apple-darwin17.0 (64-bit)
+Running under: macOS Catalina 10.15.7
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/4.0/Resources/lib/libRblas.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/4.0/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] cowplot_1.1.0   forcats_0.5.0   stringr_1.4.0   dplyr_1.0.2    
+ [5] purrr_0.3.4     readr_1.3.1     tidyr_1.1.1     tibble_3.0.3   
+ [9] ggplot2_3.3.2   tidyverse_1.3.0 workflowr_1.6.2
+
+loaded via a namespace (and not attached):
+ [1] tidyselect_1.1.0  xfun_0.16         haven_2.3.1       colorspace_1.4-1 
+ [5] vctrs_0.3.2       generics_0.0.2    viridisLite_0.4.0 htmltools_0.5.0  
+ [9] yaml_2.2.1        utf8_1.1.4        blob_1.2.1        rlang_0.4.7      
+[13] later_1.1.0.1     pillar_1.4.6      withr_2.2.0       glue_1.4.1       
+[17] DBI_1.1.0         dbplyr_1.4.4      modelr_0.1.8      readxl_1.3.1     
+[21] lifecycle_0.2.0   munsell_0.5.0     gtable_0.3.0      cellranger_1.1.0 
+[25] rvest_0.3.6       evaluate_0.14     labeling_0.3      knitr_1.29       
+[29] httpuv_1.5.4      fansi_0.4.1       broom_0.7.0       Rcpp_1.0.5       
+[33] promises_1.1.1    backports_1.1.9   scales_1.1.1      jsonlite_1.7.1   
+[37] farver_2.0.3      fs_1.5.0          hms_0.5.3         digest_0.6.25    
+[41] stringi_1.4.6     rprojroot_2.0.2   grid_4.0.2        cli_2.0.2        
+[45] tools_4.0.2       magrittr_1.5      crayon_1.3.4      whisker_0.4      
+[49] pkgconfig_2.0.3   ellipsis_0.3.1    xml2_1.3.2        reprex_0.3.0     
+[53] lubridate_1.7.9   assertthat_0.2.1  rmarkdown_2.3     httr_1.4.2       
+[57] rstudioapi_0.11   R6_2.4.1          git2r_0.27.1      compiler_4.0.2   </code></pre>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+http://docs.mathjax.org/en/latest/configuration.html.  This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
