@@ -55,11 +55,21 @@ theme_set(theme_cowplot(font_size = text_base_size,
 # metadata  <- read_rds(paste(data_path, "/metadata_snpeff_tidy.rds",sep="")) 
 # 
 
-tt1 <- Sys.time()
-mutations    <- read_rds(paste(data_path, "/mutations_snpeff_annotated_tidy_300K_downsampled.rds", sep=""))
-Sys.time() - tt1
+# tt1 <- Sys.time()
+# mutations    <- read_rds(paste(data_path, "/mutations_snpeff_annotated_tidy_300K_downsampled.rds", sep=""))
+# Sys.time() - tt1
+# 
+# metadata  <- read_rds(paste(data_path, "/metadata_snpeff_tidy_300K_downsampled.rds",sep="")) 
 
-metadata  <- read_rds(paste(data_path, "/metadata_snpeff_tidy_300K_downsampled.rds",sep="")) 
+
+if (use_downsampled) {
+  mutations <- read_rds(paste(data_path, "/mutations_snpeff_annotated_tidy_300K_downsampled.rds", sep=""))
+  metadata  <- read_rds(paste(data_path, "/metadata_snpeff_tidy_300K_downsampled.rds",sep=""))
+  } else {
+  mutations <- read_rds(paste(data_path, "/mutations_snpeff_annotated_tidy.rds", sep=""))
+  metadata  <- read_rds(paste(data_path, "/metadata_snpeff_tidy.rds",sep=""))
+}
+
 
 dim(metadata)
 genomes_md <- metadata %>% 
