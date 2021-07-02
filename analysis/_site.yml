@@ -7,16 +7,12 @@ navbar:
     href: index.html
   - text: About
     href: about.html
-  - text: Overview period 1
-    href: S2_mutations_counts_covs_exploration_visuals.html
-  - text: Overview period 2
-    href: S2_mutations_counts_covs_exploration_visuals_period2.html
-  - text: Overview period 3
+  - text: Example period 3
     href: S2_mutations_counts_covs_exploration_visuals_period3.html
-  right:
   - icon: fa-github
     text: Source code
     href: https://github.com/tbata/sars-cov2-gisaid
+
 output:
   workflowr::wflow_html:
     toc: yes
