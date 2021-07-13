@@ -12,7 +12,7 @@
 <meta name="author" content="T Bataillon" />
 
 
-<title>Implementing Models of SAR-CoV-2 mutation counts: explorind dS versus syn counts</title>
+<title>Models of SAR-CoV-2 mutation counts:dS versus ds + syn counts (pS)</title>
 
 <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -355,7 +355,7 @@ div.tocify {
 
 
 
-<h1 class="title toc-ignore">Implementing Models of SAR-CoV-2 mutation counts: explorind dS versus syn counts</h1>
+<h1 class="title toc-ignore">Models of SAR-CoV-2 mutation counts:dS versus ds + syn counts (pS)</h1>
 <h4 class="author">T Bataillon</h4>
 <h4 class="date">last update: 2021-07-13)</h4>
 
@@ -406,7 +406,7 @@ This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis
 </div>
 <div id="strongRMarkdownfilestronguncommittedchanges" class="panel-collapse collapse">
 <div class="panel-body">
-<p>The R Markdown is untracked by Git. To know which version of the R Markdown file created these results, you’ll want to first commit it to the Git repo. If you’re still working on the analysis, you can ignore this warning. When you’re finished, you can run <code>wflow_publish</code> to commit the R Markdown file and build the HTML.</p>
+<p>The R Markdown file has unstaged changes. To know which version of the R Markdown file created these results, you’ll want to first commit it to the Git repo. If you’re still working on the analysis, you can ignore this warning. When you’re finished, you can run <code>wflow_publish</code> to commit the R Markdown file and build the HTML.</p>
 </div>
 </div>
 </div>
@@ -473,16 +473,16 @@ This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomtbatasarscov2gisaidtree5f2a9766c412c9d788dc8eff36bf772f33cf7fd6targetblank5f2a976a"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/tbata/sars-cov2-gisaid/tree/5f2a9766c412c9d788dc8eff36bf772f33cf7fd6" target="_blank">5f2a976</a> </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomtbatasarscov2gisaidtree56d0e0c735fad2473263b8b774c56ac154909546targetblank56d0e0ca"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/tbata/sars-cov2-gisaid/tree/56d0e0c735fad2473263b8b774c56ac154909546" target="_blank">56d0e0c</a> </a>
 </p>
 </div>
-<div id="strongRepositoryversionstrongahrefhttpsgithubcomtbatasarscov2gisaidtree5f2a9766c412c9d788dc8eff36bf772f33cf7fd6targetblank5f2a976a" class="panel-collapse collapse">
+<div id="strongRepositoryversionstrongahrefhttpsgithubcomtbatasarscov2gisaidtree56d0e0c735fad2473263b8b774c56ac154909546targetblank56d0e0ca" class="panel-collapse collapse">
 <div class="panel-body">
 <p>
 Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility.
 </p>
 <p>
-The results in this page were generated with repository version <a href="https://github.com/tbata/sars-cov2-gisaid/tree/5f2a9766c412c9d788dc8eff36bf772f33cf7fd6" target="_blank">5f2a976</a>. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
+The results in this page were generated with repository version <a href="https://github.com/tbata/sars-cov2-gisaid/tree/56d0e0c735fad2473263b8b774c56ac154909546" target="_blank">56d0e0c</a>. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
 </p>
 <p>
 Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
@@ -494,11 +494,11 @@ Ignored files:
     Ignored:    .Rproj.user/
     Ignored:    analysis/.DS_Store
     Ignored:    analysis/.Rhistory
+    Ignored:    analysis/overview_s5.html
     Ignored:    data/.DS_Store
     Ignored:    data/2021-06-18/.DS_Store
 
 Untracked files:
-    Untracked:  analysis/S5_mutation_counts_models_dS_orSynCounts.Rmd
     Untracked:  data/2021-04-09/
     Untracked:  data/2021-06-18/metadata_snpeff_tidy.rds
     Untracked:  data/2021-06-18/mutations_snpeff_annotated_tidy.rds
@@ -508,6 +508,7 @@ Untracked files:
 Unstaged changes:
     Modified:   _workflowr.yml
     Deleted:    analysis/S0_creating_data_bywindows_lineages_OBSOLETE.Rmd
+    Modified:   analysis/S5_mutation_counts_models_dS_orSynCounts.Rmd
     Modified:   analysis/hard_coded_params.R
     Modified:   how_to_work_with_workflowr_inconda.md
     Modified:   output/README.md
@@ -523,9 +524,69 @@ Note that any generated files, e.g. HTML, png, CSS, etc., are not included in t
 <hr>
 </div>
 <div id="versions" class="tab-pane fade">
+
 <p>
-There are no past versions. Publish this analysis with <code>wflow_publish()</code> to start tracking its development.
+These are the previous versions of the repository in which changes were made to the R Markdown (<code>analysis/S5_mutation_counts_models_dS_orSynCounts.Rmd</code>) and HTML (<code>docs/S5_mutation_counts_models_dS_orSynCounts.html</code>) files. If you’ve configured a remote Git repository (see <code>?wflow_git_remote</code>), click on the hyperlinks in the table below to view the files as they were in that past version.
 </p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/tbata/sars-cov2-gisaid/56d0e0c735fad2473263b8b774c56ac154909546/docs/S5_mutation_counts_models_dS_orSynCounts.html" target="_blank">56d0e0c</a>
+</td>
+<td>
+Thomas Bataillon
+</td>
+<td>
+2021-07-13
+</td>
+<td>
+Added S5 HTML version
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/tbata/sars-cov2-gisaid/blob/bfc8766db8637d281612e9375dca3b869563f4ed/analysis/S5_mutation_counts_models_dS_orSynCounts.Rmd" target="_blank">bfc8766</a>
+</td>
+<td>
+Thomas Bataillon
+</td>
+<td>
+2021-07-13
+</td>
+<td>
+Added S5 example
+</td>
+</tr>
+</tbody>
+</table>
+</div>
 <hr>
 </div>
 </div>
@@ -538,7 +599,8 @@ There are no past versions. Publish this analysis with <code>wflow_publish()</co
 <h1>Brief history of rmd file:</h1>
 <ul>
 <li>July 13</li>
-<li>inspired and tweaked version of S4 but playing with the nb of syn counts in the window as covariate <em>NB to be removed as version tracking makes this obsolete .. ;) </em> trying with period 3 as example</li>
+<li>inspired and tweaked version of S4 but playing with the nb of syn counts in the window as covariate</li>
+<li>trying with all periods and then “nesting by period and lineage” as example</li>
 </ul>
 </div>
 <div id="loading-data-from-rds-annotated-windows" class="section level1">
@@ -952,12 +1014,13 @@ dim(df_muts_and_covs)</code></pre>
 </tr>
 </tbody>
 </table>
-<div id="the-distributions-of-counts" class="section level2">
-<h2>The distributions of counts</h2>
-<pre class="r"><code>ggplot(data = df_muts_and_covs,
-       aes(x =unique_mutations, fill = type))+
+<div id="the-distributions-of-counts-for-period-iii" class="section level2">
+<h2>The distributions of counts (for period III)</h2>
+<pre class="r"><code>df_muts_and_covs %&gt;% 
+  filter(period ==&quot;III&quot;) %&gt;%
+ggplot(aes(x =unique_mutations, fill = type))+
   geom_histogram(binwidth = 1)+
-  facet_wrap(~ pangolin_lineage + period+ type , ncol = 2, strip.position = &quot;top&quot;)+
+  facet_wrap(~ pangolin_lineage + type , ncol = 2, strip.position = &quot;right&quot;)+
   theme_minimal(base_size = 15)+
   xlab(&quot;nb unique mutations per window (gisaid)&quot;)+
   scale_fill_viridis_d()+
@@ -980,11 +1043,11 @@ dim(df_muts_and_covs)</code></pre>
 [22] &quot;max_genomes_mutated&quot; &quot;window_start&quot;        &quot;window_start_gis&quot;   
 [25] &quot;period&quot;             </code></pre>
 <pre class="r"><code>df_muts_and_covs %&gt;%
-  filter( type == &quot;S&quot;) %&gt;%
+  filter( period == &quot;III&quot;) %&gt;%
   ggplot(aes(y = log(1+unique_mutations), x = log(1+R.G.dS) )) + 
   geom_jitter(width = 0.1)+ 
   geom_smooth()+
-  facet_wrap(~pangolin_lineage + period, ncol = 3)</code></pre>
+  facet_wrap(~pangolin_lineage + period, ncol = 2 ,scales = &quot;free_y&quot;)</code></pre>
 <pre><code>`geom_smooth()` using method = &#39;loess&#39; and formula &#39;y ~ x&#39;</code></pre>
 <p><img src="figure/S5_mutation_counts_models_dS_orSynCounts.Rmd/unnamed-chunk-6-1.png" width="672" style="display: block; margin: auto;" /></p>
 </div>
@@ -1003,34 +1066,11 @@ df_tofit$checkme &lt;- adhocdf$gene_bin
 # adhocdf$gene_bin == df_tofit$gene_bin
 #check</code></pre>
 </div>
-<div id="nesting-datat-by-type-just-one-variable-for-now" class="section level1">
-<h1>Nesting datat by type (JUST one variable for now!)</h1>
+<div id="nesting-datasets-by-period-lineage" class="section level1">
+<h1>Nesting datasets by period &amp; lineage</h1>
 <pre class="r"><code>by_type &lt;- df_tofit %&gt;% 
   group_by(period, pangolin_lineage) %&gt;% 
-  nest()
-by_type</code></pre>
-<pre><code># A tibble: 16 x 3
-# Groups:   pangolin_lineage, period [16]
-   pangolin_lineage period data               
-   &lt;chr&gt;            &lt;chr&gt;  &lt;list&gt;             
- 1 B.1              I      &lt;tibble [307 × 25]&gt;
- 2 B.1.1            I      &lt;tibble [307 × 25]&gt;
- 3 B.1.1.28         I      &lt;tibble [307 × 25]&gt;
- 4 B.1.177          I      &lt;tibble [307 × 25]&gt;
- 5 B.1              II     &lt;tibble [307 × 25]&gt;
- 6 B.1.1            II     &lt;tibble [307 × 25]&gt;
- 7 B.1.1.28         II     &lt;tibble [307 × 25]&gt;
- 8 B.1.1.7          II     &lt;tibble [307 × 25]&gt;
- 9 B.1.177          II     &lt;tibble [307 × 25]&gt;
-10 B.1              III    &lt;tibble [307 × 25]&gt;
-11 B.1.1            III    &lt;tibble [307 × 25]&gt;
-12 B.1.1.28         III    &lt;tibble [307 × 25]&gt;
-13 B.1.1.7          III    &lt;tibble [307 × 25]&gt;
-14 B.1.177          III    &lt;tibble [307 × 25]&gt;
-15 B.1.351          III    &lt;tibble [307 × 25]&gt;
-16 P.1              III    &lt;tibble [307 × 25]&gt;</code></pre>
-<pre class="r"><code>names(by_type)</code></pre>
-<pre><code>[1] &quot;pangolin_lineage&quot; &quot;period&quot;           &quot;data&quot;            </code></pre>
+  nest()</code></pre>
 <div id="step-2-make-model-fitting-functions." class="section level2">
 <h2>Step 2 : Make model fitting function(s).</h2>
 <p>Note that the function is an adhoc “wrapper” for a given model. Technically we want to have a series of models and these are “coded manually” just once.</p>
@@ -1063,8 +1103,8 @@ fitting_m2 &lt;- function(my_df) {
          model_m1 = purrr::map(data, fitting_m1),
          model_m2 = purrr::map(data, fitting_m2))</code></pre>
 </div>
-<div id="step-5-summarize-goodness-of-fit" class="section level2">
-<h2>Step 5 summarize goodness of fit</h2>
+<div id="overview-of-models-aic" class="section level2">
+<h2>Overview of models AIC</h2>
 <p>Borrowed from the r4ds book … but not super useful Need to also be made more “functional”…</p>
 <pre class="r"><code>summary_m00 &lt;- by_type %&gt;% 
   mutate(glance00 = map(model_m00, broom::glance)) %&gt;% 
@@ -1234,21 +1274,21 @@ final_tbl %&gt;%
 </table>
 </div>
 </div>
-<div id="step6-extracting-confidence-intervals" class="section level1">
-<h1>Step6 Extracting confidence intervals</h1>
+<div id="extracting-confidence-intervals-under-m2-comparison-to-to-be-done" class="section level1">
+<h1>Extracting confidence intervals under M2 (comparison to to be done)</h1>
 <p>I use an adhoc wrapper of add_ci() to specify the alpha level of the Ci to build Note that <code>ci_alpha</code> is hard coded and needs to be updated:</p>
 <p>Here I fit using model <span class="math inline">\(m_1\)</span></p>
-<pre class="r"><code>ci_alpha &lt;- 0.05/(307*3) #hardcoded here to be updated
+<pre class="r"><code>ci_alpha &lt;- 0.05/(307*3) # hardcoded here ...to be  moved to hard_coded_params.R ? 
 
 add_ci_at_alpha &lt;- function (dataX, modelY){
   return(add_ci(df = dataX,  fit= modelY, alpha= ci_alpha))
 }
 
 by_type &lt;- by_type %&gt;%
-  mutate(cis_m1 = map2(data, model_m1, add_ci_at_alpha)
+  mutate(cis_m2 = map2(data, model_m2, add_ci_at_alpha)
   )
 
-by_type_m1 &lt;- unnest(by_type, cis_m1)
+by_type_m1 &lt;- unnest(by_type, cis_m2)
 names(by_type_m1)</code></pre>
 <pre><code> [1] &quot;pangolin_lineage&quot;        &quot;period&quot;                 
  [3] &quot;data&quot;                    &quot;model_m00&quot;              
@@ -1273,12 +1313,12 @@ names(by_type_m1)</code></pre>
 </div>
 <div id="plot-fitted-model-and-counts" class="section level1">
 <h1>Plot: fitted model and counts</h1>
-<div id="obs-versus-predicted-along-the-genome" class="section level2">
-<h2>Obs versus predicted along the genome</h2>
+<div id="obs-versus-predicted-along-the-genome-under-m2" class="section level2">
+<h2>Obs versus predicted along the genome (under M2)</h2>
 <p>I am just doing a quick and dirty visual of the observed counts versus the upper CI at the <span class="math inline">\(\alpha\)</span> level</p>
 <pre class="r"><code>by_type_m1 &lt;- 
   by_type_m1 %&gt;%
-  mutate(categ = ifelse( (unique_mutations &gt; UCB0.999972855591748 ), &quot;HO&quot;, &quot;HA&quot;))
+  mutate(categ = ifelse( (unique_mutations &gt; UCB0.999972855591748 ), &quot;HA&quot;, &quot;H0&quot;))
 names(by_type_m1)</code></pre>
 <pre><code> [1] &quot;pangolin_lineage&quot;        &quot;period&quot;                 
  [3] &quot;data&quot;                    &quot;model_m00&quot;              
@@ -1303,15 +1343,16 @@ names(by_type_m1)</code></pre>
 <h2>final graphs by linages</h2>
 <pre class="r"><code>sars_annot &lt;- readRDS(&quot;data/proteins_sarscov2_genome_positions.rds&quot;)</code></pre>
 <pre class="r"><code>by_type_m1 %&gt;%
+  filter(pangolin_lineage %in% c(&quot;B.1.1.7&quot;, &quot;B.1.351&quot;, &quot;P.1&quot;)) %&gt;%
   ggplot(aes(x=window_start_gis)) + 
   # geom_point(aes(y=Count), color=&quot;grey&quot;, size =0.4)+
   geom_point(aes(y=unique_mutations, color= categ))+
   xlab(&quot;genomic positions (windows of 100nt)&quot;)+ 
-  facet_wrap(~ pangolin_lineage + period, ncol = 3,  
-             strip.position = &quot;top&quot;)+
+  facet_wrap(~ pangolin_lineage + period, ncol = 1,  
+             strip.position = &quot;top&quot;, scales = &quot;free_y&quot;)+
   theme(legend.position = &quot;top&quot;) + 
   scale_color_colorblind()+
-  theme_cowplot(font_size = 12)+
+  theme_cowplot(font_size = 14)+
   annotate(&quot;text&quot;, x = 21563, y = -1, label = &quot;S&quot;, size=2)+
   annotate(&quot;text&quot;, x = 26523, y = -1, label = &quot;M&quot;, size=2)+
   annotate(&quot;text&quot;, x = 28274, y = -1, label = &quot;N&quot;, size=2)+
@@ -1349,23 +1390,23 @@ other attached packages:
 loaded via a namespace (and not attached):
  [1] nlme_3.1-148        fs_1.5.0            lubridate_1.7.9    
  [4] RColorBrewer_1.1-2  httr_1.4.2          rprojroot_2.0.2    
- [7] tools_4.0.2         backports_1.1.9     utf8_1.1.4         
-[10] R6_2.4.1            rpart_4.1-15        mgcv_1.8-31        
-[13] Hmisc_4.4-2         DBI_1.1.0           colorspace_1.4-1   
-[16] nnet_7.3-14         withr_2.2.0         gridExtra_2.3      
-[19] tidyselect_1.1.0    compiler_4.0.2      git2r_0.27.1       
-[22] cli_2.0.2           rvest_0.3.6         htmlTable_2.1.0    
-[25] xml2_1.3.2          labeling_0.3        checkmate_2.0.0    
-[28] scales_1.1.1        digest_0.6.25       foreign_0.8-80     
-[31] minqa_1.2.4         rmarkdown_2.7       base64enc_0.1-3    
-[34] jpeg_0.1-8.1        pkgconfig_2.0.3     htmltools_0.5.0    
-[37] lme4_1.1-26         highr_0.8           dbplyr_1.4.4       
-[40] htmlwidgets_1.5.2   rlang_0.4.7         readxl_1.3.1       
-[43] rstudioapi_0.11     farver_2.0.3        generics_0.0.2     
-[46] jsonlite_1.7.1      magrittr_1.5        Formula_1.2-4      
-[49] Matrix_1.2-18       Rcpp_1.0.5          munsell_0.5.0      
-[52] fansi_0.4.1         abind_1.4-5         lifecycle_0.2.0    
-[55] stringi_1.4.6       yaml_2.2.1          grid_4.0.2         
+ [7] tools_4.0.2         backports_1.1.9     R6_2.4.1           
+[10] rpart_4.1-15        mgcv_1.8-31         Hmisc_4.4-2        
+[13] DBI_1.1.0           colorspace_1.4-1    nnet_7.3-14        
+[16] withr_2.2.0         gridExtra_2.3       tidyselect_1.1.0   
+[19] compiler_4.0.2      git2r_0.27.1        cli_2.0.2          
+[22] rvest_0.3.6         htmlTable_2.1.0     xml2_1.3.2         
+[25] labeling_0.3        checkmate_2.0.0     scales_1.1.1       
+[28] digest_0.6.25       foreign_0.8-80      minqa_1.2.4        
+[31] rmarkdown_2.7       jpeg_0.1-8.1        base64enc_0.1-3    
+[34] pkgconfig_2.0.3     htmltools_0.5.0     lme4_1.1-26        
+[37] highr_0.8           dbplyr_1.4.4        htmlwidgets_1.5.2  
+[40] rlang_0.4.7         readxl_1.3.1        rstudioapi_0.11    
+[43] farver_2.0.3        generics_0.0.2      jsonlite_1.7.1     
+[46] magrittr_1.5        Formula_1.2-4       Matrix_1.2-18      
+[49] Rcpp_1.0.5          munsell_0.5.0       fansi_0.4.1        
+[52] abind_1.4-5         lifecycle_0.2.0     stringi_1.4.6      
+[55] whisker_0.4         yaml_2.2.1          grid_4.0.2         
 [58] blob_1.2.1          promises_1.1.1      crayon_1.3.4       
 [61] lattice_0.20-41     haven_2.3.1         splines_4.0.2      
 [64] hms_0.5.3           pillar_1.4.6        boot_1.3-25        

@@ -1,5 +1,5 @@
 ---
-title: "Implementing Models of SAR-CoV-2 mutation counts: explorind dS versus syn counts "
+title: "Models of SAR-CoV-2 mutation counts:dS versus ds + syn counts (pS) "
 author: "T Bataillon"
 date: "last update: `r Sys.Date()`)"
 output:
@@ -23,7 +23,7 @@ source("analysis/hard_coded_params.R")
 
 * July 13
 * inspired and tweaked version of S4 but playing with the nb of syn counts in the window as covariate
-*NB to be removed as version tracking makes this obsolete .. ;) * trying with period 3 as example
+* trying with all periods and then "nesting by period and lineage" as example
 
 ```{r, include=FALSE}
 suppressPackageStartupMessages(library(tidyverse)) # to avoid messy 
@@ -68,13 +68,14 @@ df_muts_and_covs %>%
 
 ```
 
-## The distributions of counts 
+## The distributions of counts (for period III)
 
 ```{r}
-ggplot(data = df_muts_and_covs,
-       aes(x =unique_mutations, fill = type))+
+df_muts_and_covs %>% 
+  filter(period =="III") %>%
+ggplot(aes(x =unique_mutations, fill = type))+
   geom_histogram(binwidth = 1)+
-  facet_wrap(~ pangolin_lineage + period+ type , ncol = 2, strip.position = "top")+
+  facet_wrap(~ pangolin_lineage + type , ncol = 2, strip.position = "right")+
   theme_minimal(base_size = 15)+
   xlab("nb unique mutations per window (gisaid)")+
   scale_fill_viridis_d()+
@@ -87,11 +88,11 @@ ggplot(data = df_muts_and_covs,
 ```{r}
 names(df_muts_and_covs)
 df_muts_and_covs %>%
-  filter( type == "S") %>%
+  filter( period == "III") %>%
   ggplot(aes(y = log(1+unique_mutations), x = log(1+R.G.dS) )) + 
   geom_jitter(width = 0.1)+ 
   geom_smooth()+
-  facet_wrap(~pangolin_lineage + period, ncol = 3)
+  facet_wrap(~pangolin_lineage + period, ncol = 2 ,scales = "free_y")
 
 ```
 
@@ -115,17 +116,14 @@ df_tofit$checkme <- adhocdf$gene_bin
 #check
 ```
 
-# Nesting datat by type (JUST one variable for now!)
+# Nesting datasets by period & lineage
 
 ```{r}
 
 by_type <- df_tofit %>% 
   group_by(period, pangolin_lineage) %>% 
   nest()
-by_type
-names(by_type)
 ```
-
 
 
 ## Step 2 : Make model fitting function(s).
@@ -175,7 +173,7 @@ by_type <- by_type %>%
          model_m2 = purrr::map(data, fitting_m2))
 ```
 
-## Step 5 summarize goodness of fit 
+## Overview of models AIC 
 
 Borrowed from the r4ds book ... but not super useful 
 Need to also be made more "functional"...
@@ -208,37 +206,37 @@ final_tbl %>%
   kable(digits = 2)
 ```
 
-# Step6 Extracting confidence intervals 
+# Extracting confidence intervals under M2 (comparison to to be done) 
 
 I use an adhoc wrapper of add_ci() to specify the alpha level of the Ci to build
 Note that `ci_alpha` is hard coded and needs to be updated: 
 
 Here I fit using model $m_1$
 ```{r}
-ci_alpha <- 0.05/(307*3) #hardcoded here to be updated
+ci_alpha <- 0.05/(307*3) # hardcoded here ...to be  moved to hard_coded_params.R ? 
 
 add_ci_at_alpha <- function (dataX, modelY){
   return(add_ci(df = dataX,  fit= modelY, alpha= ci_alpha))
 }
 
 by_type <- by_type %>%
-  mutate(cis_m1 = map2(data, model_m1, add_ci_at_alpha)
+  mutate(cis_m2 = map2(data, model_m2, add_ci_at_alpha)
   )
 
-by_type_m1 <- unnest(by_type, cis_m1)
+by_type_m1 <- unnest(by_type, cis_m2)
 names(by_type_m1)
 dim(by_type_m1)
 ```
 
 # Plot:  fitted model and counts  
 
-## Obs versus predicted along the genome
+## Obs versus predicted along the genome (under M2)
 I am just doing a quick and dirty visual of the observed counts versus the upper CI at the $\alpha$ level
 
 ```{r}
 by_type_m1 <- 
   by_type_m1 %>%
-  mutate(categ = ifelse( (unique_mutations > UCB0.999972855591748 ), "HO", "HA"))
+  mutate(categ = ifelse( (unique_mutations > UCB0.999972855591748 ), "HA", "H0"))
 names(by_type_m1)
 ```
 
@@ -250,15 +248,16 @@ sars_annot <- readRDS("data/proteins_sarscov2_genome_positions.rds")
 
 ```{r}
 by_type_m1 %>%
+  filter(pangolin_lineage %in% c("B.1.1.7", "B.1.351", "P.1")) %>%
   ggplot(aes(x=window_start_gis)) + 
   # geom_point(aes(y=Count), color="grey", size =0.4)+
   geom_point(aes(y=unique_mutations, color= categ))+
   xlab("genomic positions (windows of 100nt)")+ 
-  facet_wrap(~ pangolin_lineage + period, ncol = 3,  
-             strip.position = "top")+
+  facet_wrap(~ pangolin_lineage + period, ncol = 1,  
+             strip.position = "top", scales = "free_y")+
   theme(legend.position = "top") + 
   scale_color_colorblind()+
-  theme_cowplot(font_size = 12)+
+  theme_cowplot(font_size = 14)+
   annotate("text", x = 21563, y = -1, label = "S", size=2)+
   annotate("text", x = 26523, y = -1, label = "M", size=2)+
   annotate("text", x = 28274, y = -1, label = "N", size=2)+
